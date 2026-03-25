@@ -62,8 +62,7 @@
       }
     },
     "requiredPrivateInfos": [
-      "chooseAddress",
-      "chooseImage"
+      "chooseAddress"
     ],
     "lazyCodeLoading": "requiredComponents"
   },
