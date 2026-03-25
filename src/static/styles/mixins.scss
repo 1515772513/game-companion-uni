@@ -1,0 +1,100 @@
+/**
+ * 样式混入
+ */
+
+/* 文本溢出省略 */
+@mixin ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Flex 居中 */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Flex 两端对齐 */
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 清除浮动 */
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: block;
+    clear: both;
+  }
+}
+
+/* 绝对定位居中 */
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 固定定位铺满 */
+@mixin fixed-full {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* 按钮基础样式 */
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+  border-radius: 8rpx;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 按钮主题色 */
+@mixin button-primary {
+  @include button-base;
+  background-color: $primary-color;
+  color: #fff;
+
+  &:active {
+    background-color: $primary-dark;
+  }
+}
+
+/* 卡片样式 */
+@mixin card {
+  background-color: #fff;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  box-shadow: $box-shadow-sm;
+}
+
+/* 安全区域底部 */
+@mixin safe-bottom {
+  padding-bottom: calc($spacing-lg + env(safe-area-inset-bottom));
+}
+
+/* 安全区域顶部 */
+@mixin safe-top {
+  padding-top: calc($spacing-lg + env(safe-area-inset-top));
+}
