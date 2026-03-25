@@ -35,7 +35,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useUserStore } from '../store/user'
+import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
 const isAgreed = ref(false)

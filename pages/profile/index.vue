@@ -60,7 +60,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useUserStore } from '../store/user'
+import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
