@@ -2,10 +2,15 @@
  * 全局样式变量
  */
 
-/* 主题色 */
-$primary-color: #FF6B00;
-$primary-light: #FF8C00;
-$primary-dark: #E65A00;
+/* 主题色 - 蓝色系（来自原型设计） */
+$primary-color: #3b82f6;
+$primary-light: #60a5fa;
+$primary-dark: #2563eb;
+
+/* 辅助色 - 橙色系（保持原项目主题色作为强调色） */
+$accent-color: #FF6B00;
+$accent-light: #FF8C00;
+$accent-dark: #E65A00;
 
 /* 文字颜色 */
 $text-color: #333333;
