@@ -2,7 +2,7 @@
   "name": "game-companion-uni",
   "version": "1.0.0",
   "description": "游戏陪玩平台微信小程序",
-  "main": "src/main.js",
+  "main": "main.js",
   "scripts": {
     "dev": "uni",
     "build": "uni build",
