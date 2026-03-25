@@ -2,7 +2,7 @@
  * 用户状态管理
  */
 import { defineStore } from 'pinia'
-import { wxLogin, getUserInfo } from '@/api/user'
+import { wxLogin, getUserInfo } from '../api/user'
 
 export const useUserStore = defineStore('user', {
   state: () => ({

@@ -1,8 +1,8 @@
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
-import { useUserStore } from '@/store/user'
-import { useAppStore } from '@/store/app'
-import ws from '@/utils/websocket'
+import { useUserStore } from './store/user'
+import { useAppStore } from './store/app'
+import ws from './utils/websocket'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
@@ -44,7 +44,7 @@ onHide(() => {
 
 <style lang="scss">
 /* 全局样式 */
-@import '@/static/styles/global.scss';
+@import './static/styles/global.scss';
 
 page {
   height: 100%;
