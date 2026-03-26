@@ -78,11 +78,12 @@
             v-for="companion in companions"
             :key="companion.id"
             @tap="goToDetail(companion.id)">
-        <image :src="companion.avatar" mode="aspectFill" class="companion-avatar"></image>
+        <image :src="companion.avatar_url" mode="aspectFill" class="companion-avatar"></image>
         <view class="companion-info">
           <view class="companion-name-row">
             <text class="companion-name">{{ companion.nickname }}</text>
-            <view class="online-status" :class="{ online: companion.isOnline }"></view>
+            <view class="level-badge">{{ companion.level }}</view>
+            <view class="online-status" :class="{ online: companion.online_status === 1 }"></view>
           </view>
           <view class="companion-tags">
             <text class="tag" v-for="tag in companion.tags" :key="tag">{{ tag }}</text>
@@ -90,12 +91,12 @@
           <view class="companion-price">
             <text class="price-symbol">¥</text>
             <text class="price-value">{{ companion.price }}</text>
-            <text class="price-unit">/小时</text>
+            <text class="price-unit">/{{ companion.price_unit }}</text>
           </view>
           <view class="companion-rating">
             <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
             <text class="rating-text">{{ companion.rating }}</text>
-            <text class="order-count">已接{{ companion.orderCount }}单</text>
+            <text class="order-count">已接{{ companion.order_count }}单</text>
           </view>
         </view>
       </view>
@@ -113,20 +114,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getCompanionList, getGameList } from '@/api/companion'
+import { getHomeData, getGameList, getCompanionList } from '@/api/companion'
 
-const banners = ref([
-  { image: 'https://via.placeholder.com/750x300/3b82f6/ffffff?text=Banner+1' },
-  { image: 'https://via.placeholder.com/750x300/60a5fa/ffffff?text=Banner+2' },
-  { image: 'https://via.placeholder.com/750x300/93c5fd/ffffff?text=Banner+3' }
-])
-
+// 轮播图数据
+const banners = ref([])
 const games = ref([])
 const companions = ref([])
 const filter = ref({
   gameId: '',
   serviceType: '',
-  sort: 'default',
+  sort: 'rating',
   page: 1,
   pageSize: 10
 })
@@ -134,31 +131,75 @@ const hasMore = ref(true)
 const loading = ref(false)
 
 onMounted(() => {
+  loadHomeData()
   loadGames()
   loadCompanions()
 })
 
+// 加载首页数据
+const loadHomeData = async () => {
+  try {
+    const res = await getHomeData()
+    if (res.code === 200) {
+      banners.value = res.data.banners || []
+    }
+  } catch (error) {
+    console.error('加载首页数据失败', error)
+  }
+}
+
+// 加载游戏列表
 const loadGames = async () => {
   try {
     const res = await getGameList()
-    games.value = res.data || []
+    if (res.code === 200) {
+      games.value = res.data.items || []
+    }
   } catch (error) {
     console.error('加载游戏列表失败', error)
   }
 }
 
+// 加载陪玩师列表
 const loadCompanions = async () => {
   if (loading.value) return
   loading.value = true
 
   try {
-    const res = await getCompanionList(filter.value)
-    if (filter.value.page === 1) {
-      companions.value = res.data.list || []
-    } else {
-      companions.value = [...companions.value, ...(res.data.list || [])]
+    const params = {
+      page: filter.value.page,
+      page_size: filter.value.pageSize,
+      sort_by: 'rating',
+      sort_order: 'desc'
     }
-    hasMore.value = res.data.hasMore || false
+
+    // 添加筛选条件
+    if (filter.value.gameId) {
+      params.game_id = filter.value.gameId
+    }
+    if (filter.value.serviceType) {
+      const serviceTypeMap = {
+        'voice': 'entertainment',
+        'video': 'entertainment',
+        'game': 'tech'
+      }
+      params.service_type = serviceTypeMap[filter.value.serviceType]
+    }
+
+    const res = await getCompanionList(params)
+
+    if (res.code === 200) {
+      const items = res.data.items || []
+      if (filter.value.page === 1) {
+        companions.value = items
+      } else {
+        companions.value = [...companions.value, ...items]
+      }
+
+      // 检查是否还有更多数据
+      const pagination = res.data.pagination || {}
+      hasMore.value = pagination.has_more || false
+    }
   } catch (error) {
     console.error('加载陪玩师列表失败', error)
     uni.showToast({
@@ -170,30 +211,35 @@ const loadCompanions = async () => {
   }
 }
 
+// 选择游戏
 const selectGame = (gameId) => {
   filter.value.gameId = gameId
   filter.value.page = 1
   loadCompanions()
 }
 
+// 选择服务类型
 const selectServiceType = (type) => {
   filter.value.serviceType = type
   filter.value.page = 1
   loadCompanions()
 }
 
+// 设置排序
 const setSort = (sort) => {
   filter.value.sort = sort
   filter.value.page = 1
   loadCompanions()
 }
 
+// 跳转搜索
 const goToSearch = () => {
   uni.navigateTo({
     url: '/pages/companion/list?action=search'
   })
 }
 
+// 跳转详情
 const goToDetail = (id) => {
   uni.navigateTo({
     url: `/pages/companion/detail?id=${id}`
@@ -357,6 +403,15 @@ onReachBottom(() => {
           font-size: 32rpx;
           font-weight: bold;
           color: #333;
+          margin-right: 10rpx;
+        }
+
+        .level-badge {
+          padding: 4rpx 12rpx;
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          color: #fff;
+          font-size: 20rpx;
+          border-radius: 8rpx;
           margin-right: 10rpx;
         }
 

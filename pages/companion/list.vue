@@ -24,19 +24,19 @@
     <!-- 筛选条件 -->
     <view class="filter-bar">
       <view class="filter-item" @tap="showGamePicker">
-        <text class="filter-text">{{ selectedGame || '游戏' }}</text>
+        <text class="filter-text">{{ selectedGame.name || '游戏' }}</text>
+        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
+      </view>
+      <view class="filter-item" @tap="showLevelPicker">
+        <text class="filter-text">{{ selectedLevel.name || '等级' }}</text>
         <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
       </view>
       <view class="filter-item" @tap="showTypePicker">
-        <text class="filter-text">{{ selectedType || '服务类型' }}</text>
-        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
-      </view>
-      <view class="filter-item" @tap="showGenderPicker">
-        <text class="filter-text">{{ selectedGender || '性别' }}</text>
+        <text class="filter-text">{{ selectedType.name || '服务类型' }}</text>
         <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
       </view>
       <view class="filter-item" @tap="showSortPicker">
-        <text class="filter-text">{{ selectedSort || '排序' }}</text>
+        <text class="filter-text">{{ selectedSort.name || '排序' }}</text>
         <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
       </view>
     </view>
@@ -49,92 +49,116 @@
         :key="companion.id"
         @tap="goToDetail(companion.id)"
       >
-        <image :src="companion.avatar" mode="aspectFill" class="avatar"></image>
+        <image :src="companion.avatar_url" mode="aspectFill" class="avatar"></image>
         <view class="info">
           <view class="name-row">
             <text class="name">{{ companion.nickname }}</text>
-            <view class="online-status" :class="{ online: companion.isOnline }"></view>
+            <view class="level-badge">{{ companion.level }}</view>
+            <view class="online-status" :class="{ online: companion.online_status === 1 }"></view>
           </view>
           <view class="tags">
             <text class="tag" v-for="tag in companion.tags" :key="tag">{{ tag }}</text>
           </view>
+          <view class="game-info">
+            <text class="game-rank">{{ companion.game_rank }}</text>
+          </view>
           <view class="rating">
             <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
             <text class="rating-text">{{ companion.rating }}</text>
-            <text class="order-count">{{ companion.orderCount }}单</text>
+            <text class="order-count">已接{{ companion.order_count }}单</text>
           </view>
           <view class="price-row">
             <text class="price">¥{{ companion.price }}</text>
-            <text class="unit">/小时</text>
+            <text class="unit">/{{ companion.price_unit }}</text>
           </view>
-        </view>
-        <view class="favorite-btn" @tap.stop="toggleFavorite(companion)">
-          <uni-icons
-            :type="companion.isFavorite ? 'heart-filled' : 'heart'"
-            size="24"
-            :color="companion.isFavorite ? '#ff4d4f' : '#999'"
-          ></uni-icons>
         </view>
       </view>
     </view>
 
     <!-- 加载状态 -->
-    <view class="load-more" v-if="hasMore">
+    <view class="load-more" v-if="loading">
       <uni-load-more status="loading"></uni-load-more>
     </view>
-    <view class="no-more" v-else-if="companions.length > 0">
+    <view class="no-more" v-else-if="!hasMore && companions.length > 0">
       <text>没有更多了</text>
     </view>
-    <view class="empty" v-else>
+    <view class="empty" v-else-if="!loading && companions.length === 0">
       <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
       <text class="empty-text">暂无数据</text>
     </view>
-
-    <!-- 选择器弹窗 -->
-    <picker
-      v-if="showPicker"
-      mode="selector"
-      :range="pickerOptions"
-      @change="onPickerChange"
-      @cancel="showPicker = false"
-    >
-      <view></view>
-    </picker>
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { searchCompanions, getCompanionList, addFavorite, removeFavorite } from '@/api/companion'
+import { searchCompanions, getCompanionList, getGameList } from '@/api/companion'
 
 const keyword = ref('')
 const companions = ref([])
-const selectedGame = ref('')
-const selectedType = ref('')
-const selectedGender = ref('')
-const selectedSort = ref('')
+const games = ref([])
 const hasMore = ref(true)
 const loading = ref(false)
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(20)
 
-const showPicker = ref(false)
-const pickerType = ref('')
-const pickerOptions = ref([])
+// 筛选条件
+const selectedGame = ref({})
+const selectedLevel = ref({})
+const selectedType = ref({})
+const selectedSort = ref({})
 
-const gameOptions = ref(['全部', '王者荣耀', '和平精英', '英雄联盟', '绝地求生'])
-const typeOptions = ref(['全部', '语音陪玩', '视频陪玩', '游戏陪玩'])
-const genderOptions = ref(['全部', '男', '女'])
-const sortOptions = ref(['综合排序', '价格从低到高', '价格从高到低', '评分最高'])
+const gameOptions = ref([{ id: '', name: '全部游戏' }])
+const levelOptions = ref([
+  { id: '', name: '全部等级' },
+  { id: 'silver', name: '银牌' },
+  { id: 'gold', name: '金牌' },
+  { id: 'diamond', name: '钻石' },
+  { id: 'king', name: '王者' }
+])
+const typeOptions = ref([
+  { id: '', name: '全部类型' },
+  { id: 'tech', name: '技术陪玩' },
+  { id: 'entertainment', name: '娱乐陪玩' }
+])
+const sortOptions = ref([
+  { id: 'rating', name: '评分最高', order: 'desc' },
+  { id: 'price', name: '价格从低到高', order: 'asc' },
+  { id: 'price', name: '价格从高到低', order: 'desc' },
+  { id: 'order_count', name: '接单最多', order: 'desc' }
+])
 
-onMounted(() => {
-  if (keyword.value) {
-    handleSearch()
-  } else {
-    loadCompanions()
-  }
+onMounted(async () => {
+  // 设置默认筛选值
+  selectedGame.value = gameOptions.value[0]
+  selectedLevel.value = levelOptions.value[0]
+  selectedType.value = typeOptions.value[0]
+  selectedSort.value = sortOptions.value[0]
+
+  // 加载游戏列表
+  await loadGames()
+
+  // 加载陪玩师列表
+  await loadCompanions()
 })
 
+// 加载游戏列表
+const loadGames = async () => {
+  try {
+    const res = await getGameList()
+    if (res.code === 200) {
+      const items = res.data.items || []
+      games.value = items
+      gameOptions.value = [
+        { id: '', name: '全部游戏' },
+        ...items.map(game => ({ id: game.id, name: game.name }))
+      ]
+    }
+  } catch (error) {
+    console.error('加载游戏列表失败', error)
+  }
+}
+
+// 加载陪玩师列表
 const loadCompanions = async () => {
   if (loading.value) return
   loading.value = true
@@ -142,36 +166,35 @@ const loadCompanions = async () => {
   try {
     const params = {
       page: page.value,
-      pageSize: pageSize.value
+      page_size: pageSize.value,
+      sort_by: selectedSort.value.id,
+      sort_order: selectedSort.value.order
     }
 
-    if (selectedGame.value && selectedGame.value !== '全部') {
-      params.gameId = selectedGame.value
+    // 添加筛选条件
+    if (selectedGame.value.id) {
+      params.game_id = selectedGame.value.id
     }
-    if (selectedType.value && selectedType.value !== '全部') {
-      const typeMap = { '语音陪玩': 'voice', '视频陪玩': 'video', '游戏陪玩': 'game' }
-      params.serviceType = typeMap[selectedType.value]
+    if (selectedLevel.value.id) {
+      params.level = selectedLevel.value.id
     }
-    if (selectedGender.value && selectedGender.value !== '全部') {
-      const genderMap = { '男': 'male', '女': 'female' }
-      params.gender = genderMap[selectedGender.value]
-    }
-    if (selectedSort.value) {
-      const sortMap = {
-        '价格从低到高': 'price_asc',
-        '价格从高到低': 'price_desc',
-        '评分最高': 'rating_desc'
-      }
-      params.priceSort = sortMap[selectedSort.value]
+    if (selectedType.value.id) {
+      params.service_type = selectedType.value.id
     }
 
     const res = await getCompanionList(params)
-    if (page.value === 1) {
-      companions.value = res.data.list || []
-    } else {
-      companions.value = [...companions.value, ...(res.data.list || [])]
+
+    if (res.code === 200) {
+      const items = res.data.items || []
+      if (page.value === 1) {
+        companions.value = items
+      } else {
+        companions.value = [...companions.value, ...items]
+      }
+
+      const pagination = res.data.pagination || {}
+      hasMore.value = pagination.has_more || false
     }
-    hasMore.value = res.data.hasMore || false
   } catch (error) {
     console.error('加载陪玩师列表失败', error)
     uni.showToast({
@@ -183,26 +206,35 @@ const loadCompanions = async () => {
   }
 }
 
+// 搜索陪玩师
 const handleSearch = async () => {
   if (!keyword.value.trim()) {
+    page.value = 1
     loadCompanions()
     return
   }
 
   loading.value = true
   try {
-    const res = await searchCompanions({
-      keyword: keyword.value,
+    const params = {
+      keyword: keyword.value.trim(),
       page: page.value,
-      pageSize: pageSize.value
-    })
-
-    if (page.value === 1) {
-      companions.value = res.data.list || []
-    } else {
-      companions.value = [...companions.value, ...(res.data.list || [])]
+      page_size: pageSize.value
     }
-    hasMore.value = res.data.hasMore || false
+
+    const res = await searchCompanions(params)
+
+    if (res.code === 200) {
+      const items = res.data.items || []
+      if (page.value === 1) {
+        companions.value = items
+      } else {
+        companions.value = [...companions.value, ...items]
+      }
+
+      const pagination = res.data.pagination || {}
+      hasMore.value = pagination.has_more || false
+    }
   } catch (error) {
     console.error('搜索失败', error)
     uni.showToast({
@@ -214,90 +246,75 @@ const handleSearch = async () => {
   }
 }
 
+// 清除关键词
 const clearKeyword = () => {
   keyword.value = ''
   page.value = 1
   loadCompanions()
 }
 
+// 显示选择器
 const showGamePicker = () => {
-  pickerType.value = 'game'
-  pickerOptions.value = gameOptions.value
-  showPicker.value = true
+  uni.showActionSheet({
+    itemList: gameOptions.value.map(item => item.name),
+    success: (res) => {
+      selectedGame.value = gameOptions.value[res.tapIndex]
+      page.value = 1
+      loadCompanions()
+    }
+  })
+}
+
+const showLevelPicker = () => {
+  uni.showActionSheet({
+    itemList: levelOptions.value.map(item => item.name),
+    success: (res) => {
+      selectedLevel.value = levelOptions.value[res.tapIndex]
+      page.value = 1
+      loadCompanions()
+    }
+  })
 }
 
 const showTypePicker = () => {
-  pickerType.value = 'type'
-  pickerOptions.value = typeOptions.value
-  showPicker.value = true
-}
-
-const showGenderPicker = () => {
-  pickerType.value = 'gender'
-  pickerOptions.value = genderOptions.value
-  showPicker.value = true
+  uni.showActionSheet({
+    itemList: typeOptions.value.map(item => item.name),
+    success: (res) => {
+      selectedType.value = typeOptions.value[res.tapIndex]
+      page.value = 1
+      loadCompanions()
+    }
+  })
 }
 
 const showSortPicker = () => {
-  pickerType.value = 'sort'
-  pickerOptions.value = sortOptions.value
-  showPicker.value = true
+  uni.showActionSheet({
+    itemList: sortOptions.value.map(item => item.name),
+    success: (res) => {
+      selectedSort.value = sortOptions.value[res.tapIndex]
+      page.value = 1
+      loadCompanions()
+    }
+  })
 }
 
-const onPickerChange = (e) => {
-  const value = pickerOptions.value[e.detail.value]
-
-  if (pickerType.value === 'game') {
-    selectedGame.value = value
-  } else if (pickerType.value === 'type') {
-    selectedType.value = value
-  } else if (pickerType.value === 'gender') {
-    selectedGender.value = value
-  } else if (pickerType.value === 'sort') {
-    selectedSort.value = value
-  }
-
-  showPicker.value = false
-  page.value = 1
-  loadCompanions()
-}
-
+// 跳转详情
 const goToDetail = (id) => {
   uni.navigateTo({
     url: `/pages/companion/detail?id=${id}`
   })
 }
 
-const toggleFavorite = async (companion) => {
-  try {
-    if (companion.isFavorite) {
-      await removeFavorite(companion.id)
-      companion.isFavorite = false
-      uni.showToast({
-        title: '取消收藏',
-        icon: 'success'
-      })
-    } else {
-      await addFavorite({ companionId: companion.id })
-      companion.isFavorite = true
-      uni.showToast({
-        title: '收藏成功',
-        icon: 'success'
-      })
-    }
-  } catch (error) {
-    console.error('收藏操作失败', error)
-  }
-}
-
+// 返回
 const goBack = () => {
   uni.navigateBack()
 }
 
+// 触底加载更多
 onReachBottom(() => {
   if (hasMore.value && !loading.value) {
     page.value++
-    if (keyword.value) {
+    if (keyword.value.trim()) {
       handleSearch()
     } else {
       loadCompanions()
@@ -374,7 +391,6 @@ onReachBottom(() => {
     border-radius: 16rpx;
     padding: 20rpx;
     margin-bottom: 20rpx;
-    position: relative;
 
     .avatar {
       width: 140rpx;
@@ -401,6 +417,15 @@ onReachBottom(() => {
           margin-right: 10rpx;
         }
 
+        .level-badge {
+          padding: 4rpx 12rpx;
+          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+          color: #fff;
+          font-size: 20rpx;
+          border-radius: 8rpx;
+          margin-right: 10rpx;
+        }
+
         .online-status {
           width: 16rpx;
           height: 16rpx;
@@ -422,6 +447,13 @@ onReachBottom(() => {
           color: #666;
           font-size: 22rpx;
           border-radius: 4rpx;
+        }
+      }
+
+      .game-info {
+        .game-rank {
+          font-size: 24rpx;
+          color: #666;
         }
       }
 
@@ -454,17 +486,6 @@ onReachBottom(() => {
           font-size: 24rpx;
         }
       }
-    }
-
-    .favorite-btn {
-      position: absolute;
-      top: 20rpx;
-      right: 20rpx;
-      width: 60rpx;
-      height: 60rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
   }
 }

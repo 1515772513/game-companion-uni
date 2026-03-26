@@ -4,27 +4,40 @@
 import { get, post, put, del } from '../utils/request'
 
 /**
+ * 获取首页数据
+ * @returns {Promise}
+ */
+export function getHomeData() {
+  return get('/home')
+}
+
+/**
  * 获取陪玩师列表
  * @param {Object} params - 查询参数
  * @param {number} params.page - 页码
- * @param {number} params.pageSize - 每页数量
- * @param {string} params.gameId - 游戏ID
- * @param {string} params.gender - 性别: male-男, female-女
- * @param {string} params.priceSort - 价格排序: asc-升序, desc-降序
- * @param {string} params.serviceType - 服务类型: voice-语音, video-视频, game-游戏
+ * @param {number} params.page_size - 每页数量
+ * @param {number} params.game_id - 游戏ID
+ * @param {string} params.service_type - 服务类型: tech-技术, entertainment-娱乐
+ * @param {string} params.level - 等级: silver-银牌, gold-金牌, diamond-钻石, king-王者
+ * @param {number} params.min_price - 最低价格
+ * @param {number} params.max_price - 最高价格
+ * @param {number} params.online_status - 在线状态: 0-全部, 1-仅在线, 2-仅离线
+ * @param {string} params.keyword - 搜索关键词
+ * @param {string} params.sort_by - 排序字段: rating-评分, price-价格, order_count-接单数
+ * @param {string} params.sort_order - 排序方向: asc-升序, desc-降序
  * @returns {Promise}
  */
 export function getCompanionList(params) {
-  return get('/companion/list', params)
+  return get('/companions', params)
 }
 
 /**
  * 获取陪玩师详情
- * @param {string} companionId - 陪玩师ID
+ * @param {string|number} companionId - 陪玩师ID
  * @returns {Promise}
  */
 export function getCompanionDetail(companionId) {
-  return get(`/companion/detail/${companionId}`)
+  return get(`/companions/${companionId}`)
 }
 
 /**
@@ -63,11 +76,11 @@ export function getCompanionReviewStats(companionId) {
  * @param {Object} params - 搜索参数
  * @param {string} params.keyword - 关键词
  * @param {number} params.page - 页码
- * @param {number} params.pageSize - 每页数量
+ * @param {number} params.page_size - 每页数量
  * @returns {Promise}
  */
 export function searchCompanions(params) {
-  return get('/companion/search', params)
+  return get('/search/companions', params)
 }
 
 /**
@@ -431,7 +444,7 @@ export function replyReview(reviewId, data) {
  * @returns {Promise}
  */
 export function getGameList() {
-  return get('/companion/games')
+  return get('/games')
 }
 
 /**

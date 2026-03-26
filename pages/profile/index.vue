@@ -165,12 +165,17 @@ const loadUserInfo = async () => {
   try {
     const res = await getUserInfo()
     if (res.code === 200) {
-      userInfo.value = res.data
+      const data = res.data
+      userInfo.value = {
+        ...data,
+        avatar: data.avatar || data.avatar_url,
+        id: data.id || data.user_id
+      }
       stats.value = {
-        orderCount: res.data.orderCount || 0,
-        favoriteCount: res.data.favoriteCount || 0,
-        couponCount: res.data.couponCount || 0,
-        balance: res.data.balance || 0
+        orderCount: data.order_count || data.orderCount || 0,
+        favoriteCount: data.favorite_count || data.favoriteCount || 0,
+        couponCount: data.coupon_count || data.couponCount || 0,
+        balance: data.balance || 0
       }
     }
   } catch (error) {

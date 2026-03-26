@@ -87,16 +87,17 @@ onMounted(async () => {
 
 const createConversation = async (companionId) => {
   try {
-    const res = await uni.request({
-      url: '/api/message/conversation/create',
-      method: 'POST',
-      data: { companionId }
-    })
-    if (res.data.code === 200) {
-      conversationId.value = res.data.data.id
+    const { createConversation: createConvApi } = await import('@/api/message')
+    const res = await createConvApi({ companionId })
+    if (res.code === 200) {
+      conversationId.value = res.data.id || res.data.conversation_id
     }
   } catch (error) {
     console.error('创建会话失败', error)
+    uni.showToast({
+      title: '创建会话失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -118,11 +119,23 @@ const loadMessages = async () => {
   try {
     const res = await getMessageList(conversationId.value, { page: 1, pageSize: 100 })
     if (res.code === 200) {
-      messages.value = res.data.list || []
+      // 转换字段名
+      messages.value = (res.data.list || []).map(msg => ({
+        ...msg,
+        content: msg.content,
+        type: msg.type || msg.message_type || 'text',
+        isSelf: msg.is_self || msg.isSelf || false,
+        createTime: msg.created_at || msg.create_time || msg.createTime,
+        avatar: msg.sender_avatar || msg.avatar || chatInfo.value.myAvatar
+      }))
       scrollToBottom()
     }
   } catch (error) {
     console.error('获取消息列表失败', error)
+    uni.showToast({
+      title: '加载消息失败',
+      icon: 'none'
+    })
   }
 }
 

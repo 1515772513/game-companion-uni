@@ -12,10 +12,10 @@
     <view class="user-section">
       <view class="section-title">用户信息</view>
       <view class="user-info">
-        <image :src="orderInfo.userAvatar" mode="aspectFill" class="user-avatar"></image>
+        <image :src="orderInfo.userAvatar || orderInfo.user_avatar" mode="aspectFill" class="user-avatar"></image>
         <view class="info">
-          <text class="name">{{ orderInfo.userName }}</text>
-          <text class="phone">{{ orderInfo.userPhone }}</text>
+          <text class="name">{{ orderInfo.userName || orderInfo.user_name }}</text>
+          <text class="phone">{{ orderInfo.userPhone || orderInfo.user_phone }}</text>
         </view>
         <button class="contact-btn" @tap="contactUser">联系用户</button>
       </view>
@@ -148,7 +148,18 @@ const loadOrderDetail = async () => {
   try {
     const res = await getCompanionOrders({ page: 1, pageSize: 1, orderId: orderId.value })
     if (res.code === 200 && res.data.list.length > 0) {
-      orderInfo.value = res.data.list[0]
+      const data = res.data.list[0]
+      // 转换字段名
+      orderInfo.value = {
+        ...data,
+        userAvatar: data.user_avatar,
+        userName: data.user_name,
+        userPhone: data.user_phone,
+        serviceName: data.service_name,
+        appointmentTime: data.appointment_time,
+        startTime: data.start_time,
+        conversationId: data.conversation_id
+      }
     }
   } catch (error) {
     console.error('获取订单详情失败', error)

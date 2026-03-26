@@ -48,10 +48,22 @@ const loadConversations = async () => {
   try {
     const res = await getConversationList({ page: 1, pageSize: 50 })
     if (res.code === 200) {
-      conversations.value = res.data.list || []
+      // 转换字段名
+      conversations.value = (res.data.list || []).map(item => ({
+        ...item,
+        avatar: item.avatar || item.avatar_url,
+        name: item.name || item.nickname || item.companion_name,
+        lastMessage: item.last_message || item.last_message,
+        lastMessageTime: item.last_message_time || item.lastMessageTime,
+        unreadCount: item.unread_count || item.unreadCount || 0
+      }))
     }
   } catch (error) {
     console.error('获取会话列表失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
   }
 }
 

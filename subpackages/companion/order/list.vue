@@ -25,12 +25,12 @@
         </view>
 
         <view class="order-content">
-          <image :src="order.userAvatar" mode="aspectFill" class="user-avatar"></image>
+          <image :src="order.userAvatar || order.user_avatar" mode="aspectFill" class="user-avatar"></image>
           <view class="order-info">
-            <text class="user-name">{{ order.userName }}</text>
-            <text class="service-name">{{ order.serviceName }}</text>
+            <text class="user-name">{{ order.userName || order.user_name }}</text>
+            <text class="service-name">{{ order.serviceName || order.service_name }}</text>
             <view class="order-time">
-              <text>预约时间：{{ order.appointmentTime }}</text>
+              <text>预约时间：{{ order.appointmentTime || order.appointment_time }}</text>
             </view>
           </view>
           <view class="order-price">
@@ -132,10 +132,20 @@ const loadOrders = async () => {
     }
 
     const res = await getCompanionOrders(params)
+    const list = res.data.list || []
+    // 转换字段名
+    const formattedList = list.map(item => ({
+      ...item,
+      userAvatar: item.user_avatar || item.userAvatar,
+      userName: item.user_name || item.userName,
+      serviceName: item.service_name || item.serviceName,
+      appointmentTime: item.appointment_time || item.appointmentTime
+    }))
+
     if (page.value === 1) {
-      orders.value = res.data.list || []
+      orders.value = formattedList
     } else {
-      orders.value = [...orders.value, ...(res.data.list || [])]
+      orders.value = [...orders.value, ...formattedList]
     }
     hasMore.value = res.data.hasMore || false
 

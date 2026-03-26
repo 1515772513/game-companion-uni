@@ -107,10 +107,21 @@ const loadWalletInfo = async () => {
   try {
     const res = await getWalletInfo()
     if (res.code === 200) {
-      walletInfo.value = res.data
+      const data = res.data
+      walletInfo.value = {
+        ...data,
+        balance: data.balance || 0,
+        totalIncome: data.total_income || data.totalIncome || 0,
+        totalExpense: data.total_expense || data.totalExpense || 0,
+        frozen: data.frozen || 0
+      }
     }
   } catch (error) {
     console.error('获取钱包信息失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -129,14 +140,27 @@ const loadRecords = async () => {
     }
 
     const res = await getWalletRecords(params)
+    const list = res.data.list || []
+    // 转换字段名
+    const formattedList = list.map(item => ({
+      ...item,
+      title: item.title || item.description,
+      createTime: item.created_at || item.create_time || item.createTime,
+      type: item.type || (item.amount > 0 ? 'income' : 'expense')
+    }))
+
     if (page.value === 1) {
-      records.value = res.data.list || []
+      records.value = formattedList
     } else {
-      records.value = [...records.value, ...(res.data.list || [])]
+      records.value = [...records.value, ...formattedList]
     }
     hasMore.value = res.data.hasMore || false
   } catch (error) {
     console.error('获取明细失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
   } finally {
     loading.value = false
   }

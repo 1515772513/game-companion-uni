@@ -2,11 +2,11 @@
   <view class="companion-detail-page">
     <!-- 陪玩师信息 -->
     <view class="companion-header">
-      <image :src="companionInfo.avatar" mode="aspectFill" class="bg-image"></image>
+      <image :src="companionInfo.avatarUrl || companionInfo.avatar" mode="aspectFill" class="bg-image"></image>
       <view class="header-mask"></view>
       <view class="header-content">
         <view class="avatar-row">
-          <image :src="companionInfo.avatar" mode="aspectFill" class="avatar"></image>
+          <image :src="companionInfo.avatarUrl || companionInfo.avatar" mode="aspectFill" class="avatar"></image>
           <view class="online-status" :class="{ online: companionInfo.isOnline }">
             {{ companionInfo.isOnline ? '在线' : '离线' }}
           </view>
@@ -71,13 +71,13 @@
     </view>
 
     <!-- 相册 -->
-    <view class="gallery-section" v-if="companionInfo.gallery?.length">
+    <view class="gallery-section" v-if="companionInfo.gallery?.length || companionInfo.images?.length">
       <view class="section-title">相册</view>
       <scroll-view scroll-x class="gallery-scroll">
         <image
-          v-for="(img, index) in companionInfo.gallery"
+          v-for="(img, index) in (companionInfo.gallery || companionInfo.images || [])"
           :key="index"
-          :src="img"
+          :src="typeof img === 'string' ? img : img.url"
           mode="aspectFill"
           class="gallery-image"
           @tap="previewImage(index)"
@@ -94,25 +94,25 @@
       <view class="review-list">
         <view class="review-item" v-for="review in reviews" :key="review.id">
           <view class="review-header">
-            <image :src="review.userAvatar" mode="aspectFill" class="user-avatar"></image>
+            <image :src="review.userAvatar || review.user_avatar" mode="aspectFill" class="user-avatar"></image>
             <view class="user-info">
-              <text class="user-name">{{ review.userName }}</text>
+              <text class="user-name">{{ review.userName || review.user_name }}</text>
               <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
               <text class="rating">{{ review.score }}</text>
             </view>
           </view>
           <text class="review-content">{{ review.content }}</text>
-          <view class="review-images" v-if="review.images?.length">
+          <view class="review-images" v-if="review.images?.length || review.image_urls?.length">
             <image
-              v-for="(img, index) in review.images"
+              v-for="(img, index) in (review.images || review.image_urls || [])"
               :key="index"
-              :src="img"
+              :src="typeof img === 'string' ? img : img.url"
               mode="aspectFill"
               class="review-image"
-              @tap="previewReviewImage(index, review.images)"
+              @tap="previewReviewImage(index, review.images || review.image_urls)"
             ></image>
           </view>
-          <text class="review-time">{{ review.createTime }}</text>
+          <text class="review-time">{{ review.createTime || review.created_at }}</text>
         </view>
       </view>
     </view>
@@ -142,13 +142,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getCompanionDetail, getCompanionServices, getCompanionReviews, addFavorite, removeFavorite } from '@/api/companion'
+import { getCompanionDetail, getCompanionServices, getCompanionReviews } from '@/api/companion'
+import { addFavorite, removeFavorite } from '@/api/user'
 
 const companionId = ref('')
 const companionInfo = ref({})
 const services = ref([])
 const reviews = ref([])
 const selectedService = ref(null)
+const loading = ref(false)
 
 onMounted(() => {
   const pages = getCurrentPages()
@@ -162,13 +164,27 @@ onMounted(() => {
 })
 
 const loadCompanionDetail = async () => {
+  loading.value = true
   try {
     const res = await getCompanionDetail(companionId.value)
     if (res.code === 200) {
-      companionInfo.value = res.data
+      // 转换snake_case到camelCase用于展示
+      companionInfo.value = {
+        ...res.data,
+        avatarUrl: res.data.avatar_url,
+        isOnline: res.data.online_status === 'online',
+        orderCount: res.data.order_count || 0,
+        goodRate: res.data.good_rate || 100
+      }
     }
   } catch (error) {
     console.error('获取陪玩师详情失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
   }
 }
 
@@ -176,13 +192,17 @@ const loadServices = async () => {
   try {
     const res = await getCompanionServices(companionId.value)
     if (res.code === 200) {
-      services.value = res.data
-      if (services.value.length > 0) {
+      services.value = res.data || []
+      if (services.value.length > 0 && !selectedService.value) {
         selectedService.value = services.value[0]
       }
     }
   } catch (error) {
     console.error('获取服务列表失败', error)
+    uni.showToast({
+      title: '服务加载失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -220,6 +240,10 @@ const toggleFavorite = async () => {
     }
   } catch (error) {
     console.error('收藏操作失败', error)
+    uni.showToast({
+      title: '操作失败',
+      icon: 'none'
+    })
   }
 }
 

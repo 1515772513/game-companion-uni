@@ -13,10 +13,10 @@
     <view class="companion-section">
       <view class="section-title">陪玩师信息</view>
       <view class="companion-info" @tap="goToCompanion">
-        <image :src="orderInfo.companionAvatar" mode="aspectFill" class="companion-avatar"></image>
+        <image :src="orderInfo.companionAvatar || orderInfo.companion_avatar" mode="aspectFill" class="companion-avatar"></image>
         <view class="info">
-          <text class="name">{{ orderInfo.companionName }}</text>
-          <text class="service">{{ orderInfo.serviceName }}</text>
+          <text class="name">{{ orderInfo.companionName || orderInfo.companion_name }}</text>
+          <text class="service">{{ orderInfo.serviceName || orderInfo.service_name }}</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
       </view>
@@ -27,15 +27,15 @@
       <view class="section-title">订单信息</view>
       <view class="info-row">
         <text class="label">订单编号</text>
-        <text class="value">{{ orderInfo.orderNo }}</text>
+        <text class="value">{{ orderInfo.orderNo || orderInfo.order_no }}</text>
       </view>
       <view class="info-row">
         <text class="label">下单时间</text>
-        <text class="value">{{ orderInfo.createTime }}</text>
+        <text class="value">{{ orderInfo.createTime || orderInfo.created_at }}</text>
       </view>
       <view class="info-row">
         <text class="label">预约时间</text>
-        <text class="value">{{ orderInfo.appointmentTime }}</text>
+        <text class="value">{{ orderInfo.appointmentTime || orderInfo.appointment_time }}</text>
       </view>
       <view class="info-row">
         <text class="label">服务时长</text>
@@ -52,11 +52,11 @@
       <view class="section-title">价格明细</view>
       <view class="price-row">
         <text class="label">服务费用</text>
-        <text class="value">¥{{ orderInfo.servicePrice }}</text>
+        <text class="value">¥{{ orderInfo.servicePrice || orderInfo.service_price }}</text>
       </view>
-      <view class="price-row" v-if="orderInfo.couponDiscount > 0">
+      <view class="price-row" v-if="(orderInfo.couponDiscount || orderInfo.coupon_discount) > 0">
         <text class="label">优惠券</text>
-        <text class="value discount">-¥{{ orderInfo.couponDiscount }}</text>
+        <text class="value discount">-¥{{ orderInfo.couponDiscount || orderInfo.coupon_discount }}</text>
       </view>
       <view class="price-row total">
         <text class="label">实付金额</text>
@@ -118,7 +118,17 @@ const loadOrderDetail = async () => {
   try {
     const res = await getOrderDetail(orderId.value)
     if (res.code === 200) {
-      orderInfo.value = res.data
+      // 转换字段名
+      orderInfo.value = {
+        ...res.data,
+        companionAvatar: res.data.companion_avatar,
+        companionName: res.data.companion_name,
+        serviceName: res.data.service_name,
+        appointmentTime: res.data.appointment_time,
+        servicePrice: res.data.service_price,
+        couponDiscount: res.data.coupon_discount || 0,
+        createTime: res.data.created_at
+      }
     }
   } catch (error) {
     console.error('获取订单详情失败', error)

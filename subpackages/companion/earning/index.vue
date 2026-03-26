@@ -105,11 +105,22 @@ const loadEarnings = async () => {
   try {
     const res = await getCompanionEarnings({})
     if (res.code === 200) {
-      earningInfo.value = res.data
-      chartTotal.value = res.data.chartTotal || '0.00'
+      const data = res.data
+      earningInfo.value = {
+        ...data,
+        totalEarning: data.total_earning || data.totalEarning || 0,
+        todayEarning: data.today_earning || data.todayEarning || 0,
+        monthEarning: data.month_earning || data.monthEarning || 0,
+        orderCount: data.order_count || data.orderCount || 0
+      }
+      chartTotal.value = data.chart_total || data.chartTotal || '0.00'
     }
   } catch (error) {
     console.error('获取收益信息失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -117,10 +128,20 @@ const loadRecords = async () => {
   try {
     const res = await getCompanionEarningRecords({ page: 1, pageSize: 10 })
     if (res.code === 200) {
-      records.value = res.data.list || []
+      // 转换字段名
+      records.value = (res.data.list || []).map(item => ({
+        ...item,
+        title: item.title || item.description,
+        createTime: item.created_at || item.create_time || item.createTime,
+        amount: item.amount
+      }))
     }
   } catch (error) {
     console.error('获取收益记录失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
   }
 }
 
