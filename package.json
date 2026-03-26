@@ -8,13 +8,13 @@
     "build:mp-weixin": "uni build"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "3.0.0-alpha-4020420240930001",
-    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-4020420240930001",
+    "@dcloudio/uni-app": "3.0.0-4040520250104002",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4040520250104002",
     "pinia": "^2.1.7",
     "vue": "^3.4.21"
   },
   "devDependencies": {
-    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-4020420240930001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4040520250104002",
     "sass": "^1.72.0",
     "vite": "^5.1.4"
   }
