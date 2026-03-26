@@ -18,18 +18,38 @@ UI 组件：uni-ui / uView Plus
 数据库：MySQL
 项目目录结构
 plaintext
-├── src/
-│   ├── api/           # 接口请求封装
-│   ├── pages/         # 页面（用户/陪玩师/订单/我的）
-│   ├── components/    # 公共组件
-│   ├── static/        # 图片、图标资源
-│   ├── store/         # 状态管理（pinia）
-│   ├── utils/         # 工具类（时间、加密、校验）
-│   ├── App.vue
-│   └── main.js
-├── manifest.json      # 小程序配置
-├── pages.json         # 路由配置
-└── vite.config.js     # Vite 配置
+game-companion-uni/  # 项目根目录（HBuilderX 打开这个文件夹）
+├── .env.development        # 开发环境变量配置
+├── .env.production         # 生产环境变量配置
+├── .env.testing            # 测试环境变量配置
+├── .gitignore              # Git 版本控制忽略文件
+├── .npmrc                  # npm 包管理器配置
+├── index.html              # Vite 构建入口页面
+├── package.json            # 项目依赖、运行脚本（核心文件）
+├── README.md               # 项目说明文档
+├── src/                    # 【核心源码文件夹】所有业务代码都在这里
+│   ├── components/         # 公共组件文件夹
+│   ├── js_sdk/             # 第三方 JS SDK
+│   ├── package-mine/       # 小程序分包：我的页面
+│   ├── package-order/      # 小程序分包：订单模块
+│   ├── pages/              # 主包页面（小程序首页、tab页）
+│   ├── router/             # 路由管理配置
+│   ├── static/             # 静态资源：图片、图标、视频
+│   ├── stores/             # 全局状态管理（Pinia）
+│   ├── theme/              # 主题样式、配色配置
+│   ├── uni_modules/        # uni-app 插件库
+│   ├── utils/              # 工具函数：时间、加密、请求等
+│   ├── wxs/                # 微信小程序专用脚本
+│   ├── app.css             # 全局公共样式
+│   ├── App.vue             # 项目入口组件（必须有）
+│   ├── auto-imports.d.ts   # 自动导入类型声明
+│   ├── main.js             # 项目入口 JS 文件
+│   ├── manifest.json       # uni-app 核心配置（运行小程序必须）
+│   ├── pages.json          # 页面路由、导航栏配置（必须有）
+│   ├── popup.scss          # 弹窗样式
+│   └── uni.scss            # uni-app 内置样式变量
+├── tsconfig.json           # TypeScript 配置
+└── vite.config.js          # Vite 构建工具配置（编译小程序用）
 环境要求
 HBuilderX 最新版
 Node.js >= 16
