@@ -140,7 +140,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserInfo, logout, getOrderStats } from '@/api/user'
+import { getUserInfo, logout } from '@/api/user'
+import { getOrderStats } from '@/api/order'
 
 const userInfo = ref({})
 const stats = ref({
