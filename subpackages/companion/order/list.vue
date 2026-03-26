@@ -1,0 +1,494 @@
+<template>
+  <view class="companion-order-page">
+    <!-- Tab栏 -->
+    <view class="tab-bar">
+      <view
+        class="tab-item"
+        v-for="tab in tabs"
+        :key="tab.value"
+        :class="{ active: currentTab === tab.value }"
+        @tap="switchTab(tab.value)"
+      >
+        <text class="tab-text">{{ tab.label }}</text>
+        <view class="tab-badge" v-if="orderCounts[tab.value] > 0">{{ orderCounts[tab.value] }}</view>
+      </view>
+    </view>
+
+    <!-- 订单列表 -->
+    <view class="order-list">
+      <view class="order-item" v-for="order in orders" :key="order.id" @tap="goToDetail(order.id)">
+        <view class="order-header">
+          <view class="order-no">订单号：{{ order.orderNo }}</view>
+          <view class="order-status" :class="`status-${order.status}`">
+            {{ getStatusText(order.status) }}
+          </view>
+        </view>
+
+        <view class="order-content">
+          <image :src="order.userAvatar" mode="aspectFill" class="user-avatar"></image>
+          <view class="order-info">
+            <text class="user-name">{{ order.userName }}</text>
+            <text class="service-name">{{ order.serviceName }}</text>
+            <view class="order-time">
+              <text>预约时间：{{ order.appointmentTime }}</text>
+            </view>
+          </view>
+          <view class="order-price">
+            <text class="price">¥{{ order.price }}</text>
+          </view>
+        </view>
+
+        <view class="order-footer">
+          <view class="action-btns">
+            <button
+              class="action-btn primary-btn"
+              v-if="order.status === 'pending'"
+              @tap.stop="acceptOrder(order)"
+            >
+              接单
+            </button>
+            <button
+              class="action-btn cancel-btn"
+              v-if="order.status === 'pending'"
+              @tap.stop="rejectOrder(order)"
+            >
+              拒绝
+            </button>
+            <button
+              class="action-btn primary-btn"
+              v-if="order.status === 'accepted'"
+              @tap.stop="startService(order)"
+            >
+              开始服务
+            </button>
+            <button
+              class="action-btn primary-btn"
+              v-if="order.status === 'ongoing'"
+              @tap.stop="endService(order)"
+            >
+              结束服务
+            </button>
+            <button
+              class="action-btn default-btn"
+              @tap.stop="contactUser(order)"
+            >
+              联系用户
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="load-more" v-if="hasMore">
+      <uni-load-more status="loading"></uni-load-more>
+    </view>
+    <view class="no-more" v-else-if="orders.length > 0">
+      <text>没有更多了</text>
+    </view>
+    <view class="empty" v-else>
+      <image src="/static/empty-order.png" mode="aspectFit" class="empty-image"></image>
+      <text class="empty-text">暂无订单</text>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getCompanionOrders, acceptOrder as acceptOrderApi, rejectOrder as rejectOrderApi, startService as startServiceApi, endService as endServiceApi } from '@/api/companion'
+
+const tabs = ref([
+  { label: '全部', value: 'all' },
+  { label: '待接单', value: 'pending' },
+  { label: '已接单', value: 'accepted' },
+  { label: '进行中', value: 'ongoing' },
+  { label: '已完成', value: 'completed' }
+])
+
+const currentTab = ref('all')
+const orders = ref([])
+const orderCounts = ref({})
+const page = ref(1)
+const pageSize = ref(10)
+const hasMore = ref(true)
+const loading = ref(false)
+
+onMounted(() => {
+  loadOrders()
+})
+
+const loadOrders = async () => {
+  if (loading.value) return
+  loading.value = true
+
+  try {
+    const params = {
+      page: page.value,
+      pageSize: pageSize.value
+    }
+
+    if (currentTab.value !== 'all') {
+      params.status = currentTab.value
+    }
+
+    const res = await getCompanionOrders(params)
+    if (page.value === 1) {
+      orders.value = res.data.list || []
+    } else {
+      orders.value = [...orders.value, ...(res.data.list || [])]
+    }
+    hasMore.value = res.data.hasMore || false
+
+    // Update counts
+    res.data.counts && (orderCounts.value = res.data.counts)
+  } catch (error) {
+    console.error('获取订单列表失败', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+const switchTab = (tab) => {
+  currentTab.value = tab
+  page.value = 1
+  loadOrders()
+}
+
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: '待接单',
+    accepted: '已接单',
+    ongoing: '进行中',
+    completed: '已完成',
+    cancelled: '已取消'
+  }
+  return statusMap[status] || '未知状态'
+}
+
+const goToDetail = (orderId) => {
+  uni.navigateTo({
+    url: `/subpackages/companion/order/accept?id=${orderId}`
+  })
+}
+
+const acceptOrder = async (order) => {
+  try {
+    const res = await acceptOrderApi(order.id)
+    if (res.code === 200) {
+      uni.showToast({
+        title: '接单成功',
+        icon: 'success'
+      })
+      page.value = 1
+      loadOrders()
+    }
+  } catch (error) {
+    uni.showToast({
+      title: '接单失败',
+      icon: 'none'
+    })
+  }
+}
+
+const rejectOrder = (order) => {
+  uni.showModal({
+    title: '拒绝订单',
+    editable: true,
+    placeholderText: '请输入拒绝原因',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await rejectOrderApi(order.id, { reason: res.content || '陪玩师拒绝' })
+          uni.showToast({
+            title: '已拒绝',
+            icon: 'success'
+          })
+          page.value = 1
+          loadOrders()
+        } catch (error) {
+          uni.showToast({
+            title: '操作失败',
+            icon: 'none'
+          })
+        }
+      }
+    }
+  })
+}
+
+const startService = async (order) => {
+  try {
+    const res = await startServiceApi(order.id)
+    if (res.code === 200) {
+      uni.showToast({
+        title: '服务已开始',
+        icon: 'success'
+      })
+      page.value = 1
+      loadOrders()
+    }
+  } catch (error) {
+    uni.showToast({
+      title: '操作失败',
+      icon: 'none'
+    })
+  }
+}
+
+const endService = (order) => {
+  uni.showModal({
+    title: '结束服务',
+    content: '请确认服务时长和信息',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({
+          url: `/subpackages/companion/order/confirm?id=${order.id}`
+        })
+      }
+    }
+  })
+}
+
+const contactUser = (order) => {
+  uni.navigateTo({
+    url: `/pages/message/detail?conversationId=${order.conversationId}`
+  })
+}
+
+onReachBottom(() => {
+  if (hasMore.value && !loading.value) {
+    page.value++
+    loadOrders()
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+.companion-order-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.tab-bar {
+  display: flex;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 90rpx;
+    position: relative;
+
+    .tab-text {
+      font-size: 28rpx;
+      color: #666;
+      transition: all 0.3s;
+    }
+
+    .tab-badge {
+      position: absolute;
+      top: 10rpx;
+      right: 30rpx;
+      min-width: 32rpx;
+      height: 32rpx;
+      background-color: #ff4d4f;
+      color: #fff;
+      font-size: 20rpx;
+      border-radius: 16rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8rpx;
+    }
+
+    &.active {
+      .tab-text {
+        color: #3b82f6;
+        font-weight: bold;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60rpx;
+        height: 4rpx;
+        background-color: #3b82f6;
+        border-radius: 2rpx;
+      }
+    }
+  }
+}
+
+.order-list {
+  padding: 20rpx;
+
+  .order-item {
+    background-color: #fff;
+    border-radius: 16rpx;
+    padding: 24rpx;
+    margin-bottom: 20rpx;
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20rpx;
+      border-bottom: 1rpx solid #f0f0f0;
+
+      .order-no {
+        font-size: 24rpx;
+        color: #999;
+      }
+
+      .order-status {
+        font-size: 26rpx;
+        font-weight: bold;
+
+        &.status-pending {
+          color: #ff4d4f;
+        }
+
+        &.status-accepted {
+          color: #3b82f6;
+        }
+
+        &.status-ongoing {
+          color: #52c41a;
+        }
+
+        &.status-completed {
+          color: #999;
+        }
+      }
+    }
+
+    .order-content {
+      display: flex;
+      padding: 20rpx 0;
+
+      .user-avatar {
+        width: 120rpx;
+        height: 120rpx;
+        border-radius: 12rpx;
+        flex-shrink: 0;
+      }
+
+      .order-info {
+        flex: 1;
+        margin-left: 20rpx;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        .user-name {
+          font-size: 28rpx;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 8rpx;
+        }
+
+        .service-name {
+          font-size: 24rpx;
+          color: #666;
+          margin-bottom: 8rpx;
+        }
+
+        .order-time {
+          font-size: 22rpx;
+          color: #999;
+        }
+      }
+
+      .order-price {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+
+        .price {
+          color: #3b82f6;
+          font-size: 36rpx;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .order-footer {
+      padding-top: 20rpx;
+      border-top: 1rpx solid #f0f0f0;
+
+      .action-btns {
+        display: flex;
+        justify-content: flex-end;
+
+        .action-btn {
+          margin-left: 16rpx;
+          padding: 0 32rpx;
+          height: 60rpx;
+          line-height: 60rpx;
+          border-radius: 30rpx;
+          font-size: 26rpx;
+          border: none;
+
+          &::after {
+            border: none;
+          }
+
+          &.cancel-btn {
+            background-color: #f5f5f5;
+            color: #666;
+          }
+
+          &.default-btn {
+            background-color: #fff;
+            color: #3b82f6;
+            border: 1rpx solid #3b82f6;
+          }
+
+          &.primary-btn {
+            background-color: #3b82f6;
+            color: #fff;
+          }
+        }
+      }
+    }
+  }
+}
+
+.load-more, .no-more {
+  text-align: center;
+  padding: 30rpx 0;
+  color: #999;
+  font-size: 26rpx;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+
+  .empty-image {
+    width: 300rpx;
+    height: 300rpx;
+    margin-bottom: 30rpx;
+  }
+
+  .empty-text {
+    color: #999;
+    font-size: 28rpx;
+  }
+}
+</style>
