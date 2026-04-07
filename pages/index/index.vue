@@ -10,9 +10,10 @@
 
     <!-- 轮播图 -->
     <view class="banner-section">
+		  {{banners}}
       <swiper class="banner-swiper" indicator-dots circular autoplay interval="3000">
         <swiper-item v-for="(banner, index) in banners" :key="index">
-          <image :src="banner.image" mode="aspectFill" class="banner-image"></image>
+          <image :src="banner.ImageUrl" mode="aspectFill" class="banner-image"></image>
         </swiper-item>
       </swiper>
     </view>
@@ -247,12 +248,12 @@ const goToDetail = (id) => {
 }
 
 // 触底加载更多
-onReachBottom(() => {
-  if (hasMore.value && !loading.value) {
-    filter.value.page++
-    loadCompanions()
-  }
-})
+// onReachBottom(() => {
+//   if (hasMore.value && !loading.value) {
+//     filter.value.page++
+//     loadCompanions()
+//   }
+// })
 </script>
 
 <style lang="scss" scoped>

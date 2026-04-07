@@ -4,8 +4,13 @@
   "description": "游戏陪玩平台微信小程序",
   "main": "main.js",
   "scripts": {
-    "dev:mp-weixin": "uni",
-    "build:mp-weixin": "uni build"
+    "dev:h5": "uni build --mode development",
+    "dev:mp-weixin": "uni build --mode development --platform mp-weixin",
+    "build:test:h5": "uni build --mode test",
+    "build:test:mp-weixin": "uni build --mode test --platform mp-weixin",
+    "build:prod:h5": "uni build --mode production",
+    "build:prod:mp-weixin": "uni build --mode production --platform mp-weixin",
+    "build": "uni build --mode production"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4040520250104002",

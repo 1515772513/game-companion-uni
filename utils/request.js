@@ -1,8 +1,23 @@
 import { useUserStore } from '../store/user'
 import { useAppStore } from '../store/app'
 
+/**
+ * 获取环境配置
+ * 适配 Vite + uni-app 环境变量
+ */
+const getEnvConfig = () => {
+  // 优先读取 Vite 环境变量
+  const env = import.meta.env.VITE_APP_ENV || 'development'
+  const baseUrl = import.meta.env.VITE_APP_BASE_URL || ''
+  
+  return { env, baseUrl }
+}
+
 // 请求拦截器
 function request(options) {
+  // 获取环境配置
+  const { env, baseUrl } = getEnvConfig()
+
   return new Promise((resolve, reject) => {
     // 获取store
     const userStore = useUserStore()
@@ -18,7 +33,7 @@ function request(options) {
 
     // 构建请求配置
     const config = {
-      url: options.url,
+      url: baseUrl + options.url,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
