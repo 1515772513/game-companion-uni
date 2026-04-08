@@ -28,7 +28,7 @@ export function getHomeData() {
  * @returns {Promise}
  */
 export function getCompanionList(params) {
-  return get('/companions', params)
+  return get('/companion/list', params)
 }
 
 /**

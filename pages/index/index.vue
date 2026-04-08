@@ -10,7 +10,6 @@
 
     <!-- 轮播图 -->
     <view class="banner-section">
-		  {{banners}}
       <swiper class="banner-swiper" indicator-dots circular autoplay interval="3000">
         <swiper-item v-for="(banner, index) in banners" :key="index">
           <image :src="banner.ImageUrl" mode="aspectFill" class="banner-image"></image>
@@ -28,10 +27,10 @@
         </view>
         <view class="filter-item"
               v-for="game in games"
-              :key="game.id"
-              :class="{ active: filter.gameId === game.id }"
-              @tap="selectGame(game.id)">
-          {{ game.name }}
+              :key="game.value"
+              :class="{ active: filter.gameId === game.value }"
+              @tap="selectGame(game.value)">
+          {{ game.label }}
         </view>
       </scroll-view>
     </view>
@@ -43,20 +42,13 @@
             @tap="selectServiceType('')">
         全部
       </view>
-      <view class="type-item"
-            :class="{ active: filter.serviceType === 'voice' }"
-            @tap="selectServiceType('voice')">
-        语音陪玩
-      </view>
-      <view class="type-item"
-            :class="{ active: filter.serviceType === 'video' }"
-            @tap="selectServiceType('video')">
-        视频陪玩
-      </view>
-      <view class="type-item"
-            :class="{ active: filter.serviceType === 'game' }"
-            @tap="selectServiceType('game')">
-        游戏陪玩
+      <!-- 服务类型选项 -->
+      <view v-for="item in serviceTypeOptions"
+            :key="item.dictValue"
+            class="type-item"
+            :class="{ active: filter.serviceType === item.dictValue }"
+            @tap="selectServiceType(item.dictValue)">
+        {{ item.dictLabel }}
       </view>
     </view>
 
@@ -83,7 +75,7 @@
         <view class="companion-info">
           <view class="companion-name-row">
             <text class="companion-name">{{ companion.nickname }}</text>
-            <view class="level-badge">{{ companion.level }}</view>
+            <view class="level-badge">{{ companion.levelName }}</view>
             <view class="online-status" :class="{ online: companion.online_status === 1 }"></view>
           </view>
           <view class="companion-tags">
@@ -92,7 +84,7 @@
           <view class="companion-price">
             <text class="price-symbol">¥</text>
             <text class="price-value">{{ companion.price }}</text>
-            <text class="price-unit">/{{ companion.price_unit }}</text>
+            <text class="price-unit">/{{ companion.priceUnit }}</text>
           </view>
           <view class="companion-rating">
             <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
@@ -115,12 +107,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getHomeData, getGameList, getCompanionList } from '@/api/companion'
+import { getHomeData, getCompanionList } from '@/api/companion'
+import { getDictList } from '@/api/ditc'
+import { getGameList } from '@/api/game'
+
 
 // 轮播图数据
 const banners = ref([])
 const games = ref([])
 const companions = ref([])
+const serviceTypeOptions = ref([])
 const filter = ref({
   gameId: '',
   serviceType: '',
@@ -135,6 +131,7 @@ onMounted(() => {
   loadHomeData()
   loadGames()
   loadCompanions()
+  loadServiceTypeList()
 })
 
 // 加载首页数据
@@ -154,10 +151,21 @@ const loadGames = async () => {
   try {
     const res = await getGameList()
     if (res.code === 200) {
-      games.value = res.data.items || []
+      games.value = res.data || []
     }
   } catch (error) {
     console.error('加载游戏列表失败', error)
+  }
+}
+// 加载服务类型列表
+const loadServiceTypeList = async () => {
+  try {
+    const res = await getDictList('service_type')
+    if (res.code === 200) {
+      serviceTypeOptions.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载服务类型列表失败', error)
   }
 }
 
@@ -165,30 +173,16 @@ const loadGames = async () => {
 const loadCompanions = async () => {
   if (loading.value) return
   loading.value = true
-
   try {
     const params = {
       page: filter.value.page,
       page_size: filter.value.pageSize,
-      sort_by: 'rating',
-      sort_order: 'desc'
+      game_id: filter.value.gameId || '',
+      service_type: filter.value.serviceType || '',
+      sort: filter.value.sort
     }
-
-    // 添加筛选条件
-    if (filter.value.gameId) {
-      params.game_id = filter.value.gameId
-    }
-    if (filter.value.serviceType) {
-      const serviceTypeMap = {
-        'voice': 'entertainment',
-        'video': 'entertainment',
-        'game': 'tech'
-      }
-      params.service_type = serviceTypeMap[filter.value.serviceType]
-    }
-
+    // 调用新接口
     const res = await getCompanionList(params)
-
     if (res.code === 200) {
       const items = res.data.items || []
       if (filter.value.page === 1) {
@@ -196,17 +190,11 @@ const loadCompanions = async () => {
       } else {
         companions.value = [...companions.value, ...items]
       }
-
-      // 检查是否还有更多数据
-      const pagination = res.data.pagination || {}
-      hasMore.value = pagination.has_more || false
+      hasMore.value = res.data.pagination.has_more || false
     }
   } catch (error) {
     console.error('加载陪玩师列表失败', error)
-    uni.showToast({
-      title: '加载失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -311,6 +299,7 @@ const goToDetail = (id) => {
   .filter-scroll {
     white-space: nowrap;
     padding: 0 20rpx;
+    width: calc(100% - 40rpx);
 
     .filter-item {
       display: inline-block;
