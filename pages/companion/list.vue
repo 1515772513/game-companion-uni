@@ -23,19 +23,16 @@
     
     <!-- 筛选条件 - 改造为 Picker 组件 -->
     <view class="filter-bar">
-      <!-- 1. 游戏选择 -->
-      <picker
+      <!-- 1. 游戏选择 - 改为自定义弹窗选择器 -->
+      <view 
         class="filter-item"
-        :value="gameIndex"
-        :range="gameOptions"
-        range-key="name"
-        @change="onGameChange"
+        @tap="openGameSelector"
       >
         <view>
           <text class="filter-text">{{ selectedGame.name || '游戏' }}</text>
           <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
         </view>
-      </picker>
+      </view>
       
       <!-- 2. 等级选择 (核心改动：增加 picker 包裹) -->
       <picker
@@ -127,11 +124,55 @@
       <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
       <text class="empty-text">暂无数据</text>
     </view>
+
+    <!-- 游戏选择弹窗 -->
+    <uni-popup ref="gamePopup" type="bottom" :mask-click="false">
+      <view class="game-selector">
+        <view class="selector-header">
+          <text class="title">选择游戏</text>
+          <uni-icons type="close" size="24" color="#666" @tap="closeGameSelector"></uni-icons>
+        </view>
+        
+        <!-- 游戏搜索框 -->
+        <view class="game-search-input">
+          <uni-icons type="search" size="20" color="#999"></uni-icons>
+          <input
+            v-model="gameSearchKeyword"
+            placeholder="搜索游戏"
+            placeholder-class="placeholder"
+            @input="filterGames"
+          />
+          <uni-icons
+            v-if="gameSearchKeyword"
+            type="clear"
+            size="20"
+            color="#999"
+            @tap="clearGameSearch"
+          ></uni-icons>
+        </view>
+        
+        <!-- 游戏列表 -->
+        <view class="game-list">
+          <view 
+            class="game-item"
+            v-for="(game, index) in filteredGameOptions"
+            :key="game.id || index"
+            @tap="selectGame(game)"
+          >
+            <text :class="{ active: selectedGame.id === game.id }">{{ game.name }}</text>
+          </view>
+          
+          <view class="empty" v-if="filteredGameOptions.length === 0">
+            <text class="empty-text">未找到相关游戏</text>
+          </view>
+        </view>
+      </view>
+    </uni-popup>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { getCompanionList } from '@/api/companion'
 import { getDictList } from '@/api/ditc'
 import { getGameList } from '@/api/game'
@@ -157,6 +198,8 @@ const sortIndex = ref(0)
 
 // 选项数据源
 const gameOptions = ref([{ id: '', name: '全部游戏' }])
+const filteredGameOptions = ref([]) // 搜索过滤后的游戏列表
+const gameSearchKeyword = ref('') // 游戏搜索关键词
 const levelOptions = ref([{ id: '', name: '全部等级' }])
 const typeOptions = ref([{ id: '', name: '全部类型' }])
 const sortOptions = ref([
@@ -165,6 +208,9 @@ const sortOptions = ref([
   { id: 'price_desc', name: '价格从高到高', order: 'price_desc' },
   { id: 'order_count', name: '接单最多', order: 'total_orders_desc' }
 ])
+
+// 弹窗引用
+const gamePopup = ref(null)
 
 onMounted(async () => {
   // 初始化数据
@@ -175,6 +221,9 @@ onMounted(async () => {
   selectedLevel.value = levelOptions.value[0]
   selectedType.value = typeOptions.value[0]
   selectedSort.value = sortOptions.value[0]
+  
+  // 初始化过滤后的游戏列表
+  filteredGameOptions.value = [...gameOptions.value]
   
   // 初始加载列表
   loadCompanions()
@@ -193,6 +242,11 @@ watch(selectedGame, async () => {
     levelOptions.value = [{ id: '', name: '全部等级' }]
   }
 }, { deep: true })
+
+// 监听游戏列表变化，同步过滤列表
+watch(gameOptions, () => {
+  filteredGameOptions.value = [...gameOptions.value]
+})
 
 // 加载游戏列表
 const loadGames = async () => {
@@ -289,16 +343,44 @@ const clearKeyword = () => {
   handleSearch()
 }
 
-// Picker 改变事件 (核心逻辑：同步选中状态并刷新数据)
-const onGameChange = (e) => {
-  const index = e.detail.value
-  selectedGame.value = gameOptions.value[index]
-  gameIndex.value = index
-  page.value = 1
-  // loadLevels 已通过 watch 监听 selectedGame 自动触发
-  loadCompanions()
+// 游戏选择器相关方法
+const openGameSelector = () => {
+  gamePopup.value.open()
 }
 
+const closeGameSelector = () => {
+  gamePopup.value.close()
+}
+
+// 过滤游戏列表
+const filterGames = () => {
+  const keyword = gameSearchKeyword.value.trim().toLowerCase()
+  if (!keyword) {
+    filteredGameOptions.value = [...gameOptions.value]
+    return
+  }
+  
+  filteredGameOptions.value = gameOptions.value.filter(game => 
+    game.name.toLowerCase().includes(keyword)
+  )
+}
+
+// 清除游戏搜索关键词
+const clearGameSearch = () => {
+  gameSearchKeyword.value = ''
+  filterGames()
+}
+
+// 选择游戏
+const selectGame = (game) => {
+  selectedGame.value = game
+  gameIndex.value = gameOptions.value.findIndex(item => item.id === game.id)
+  page.value = 1
+  loadCompanions()
+  closeGameSelector()
+}
+
+// Picker 改变事件 (核心逻辑：同步选中状态并刷新数据)
 const onLevelChange = (e) => {
   const index = e.detail.value
   selectedLevel.value = levelOptions.value[index]
@@ -535,6 +617,79 @@ const goBack = () => {
   .empty-text {
     color: #999;
     font-size: 28rpx;
+  }
+}
+
+// 游戏选择器样式
+.game-selector {
+  background-color: #fff;
+  border-radius: 20rpx 20rpx 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+
+  .selector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 30rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+
+    .title {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: #333;
+    }
+  }
+
+  .game-search-input {
+    display: flex;
+    align-items: center;
+    height: 70rpx;
+    background-color: #f5f5f5;
+    border-radius: 35rpx;
+    padding: 0 30rpx;
+    margin: 20rpx 30rpx;
+
+    input {
+      flex: 1;
+      margin: 0 10rpx;
+      font-size: 28rpx;
+    }
+
+    .placeholder {
+      color: #999;
+    }
+  }
+
+  .game-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 30rpx 20rpx;
+
+    .game-item {
+      padding: 20rpx 0;
+      border-bottom: 1rpx solid #f5f5f5;
+      font-size: 28rpx;
+      color: #333;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .active {
+        color: #3b82f6;
+        font-weight: bold;
+      }
+    }
+
+    .empty {
+      padding: 50rpx 0;
+
+      .empty-text {
+        font-size: 26rpx;
+      }
+    }
   }
 }
 </style>
