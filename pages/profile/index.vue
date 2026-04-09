@@ -122,10 +122,12 @@
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
       </view>
-      <view class="menu-item" @tap="contactService">
+      <!-- <view class="menu-item" @tap="contactService"> -->
+      <view class="menu-item">
         <view class="menu-left">
           <uni-icons type="phone-filled" size="22" color="#3b82f6"></uni-icons>
-          <text class="menu-label">联系客服</text>
+          <!-- <text class="menu-label">联系客服</text> -->
+          <button class="contact-btn" open-type="contact">联系客服</button>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
       </view>
@@ -261,10 +263,13 @@ const goToAbout = () => {
 }
 
 const contactService = () => {
-  uni.showModal({
-    title: '联系客服',
-    content: '客服电话：400-123-4567\n工作时间：9:00-21:00',
-    showCancel: false
+  // uni.showModal({
+  //   title: '联系客服',
+  //   content: '客服电话：400-123-4567\n工作时间：9:00-21:00',
+  //   showCancel: false
+  // })
+  uni.navigateTo({
+    url: 'https://mpkf.weixin.qq.com/kf/home?token=1660817771'
   })
 }
 

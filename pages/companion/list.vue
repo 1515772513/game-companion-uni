@@ -20,14 +20,14 @@
       </view>
       <text class="cancel-btn" @tap="goBack">取消</text>
     </view>
-
+    
     <!-- 筛选条件 -->
     <view class="filter-bar">
       <view class="filter-item" @tap="showGamePicker">
         <text class="filter-text">{{ selectedGame.name || '游戏' }}</text>
         <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
       </view>
-      <view class="filter-item" @tap="showLevelPicker">
+      <view :class="`filter-item ${selectedGame.id ? '' : 'disabled'}`" @tap="showLevelPicker">
         <text class="filter-text">{{ selectedLevel.name || '等级' }}</text>
         <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
       </view>
@@ -91,7 +91,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { searchCompanions, getCompanionList, getGameList } from '@/api/companion'
+import { searchCompanions, getCompanionList } from '@/api/companion'
+import { getDictList } from '@/api/ditc'
+import { getGameList } from '@/api/game'
 
 const keyword = ref('')
 const companions = ref([])
@@ -110,47 +112,75 @@ const selectedSort = ref({})
 const gameOptions = ref([{ id: '', name: '全部游戏' }])
 const levelOptions = ref([
   { id: '', name: '全部等级' },
-  { id: 'silver', name: '银牌' },
-  { id: 'gold', name: '金牌' },
-  { id: 'diamond', name: '钻石' },
-  { id: 'king', name: '王者' }
 ])
-const typeOptions = ref([
-  { id: '', name: '全部类型' },
-  { id: 'tech', name: '技术陪玩' },
-  { id: 'entertainment', name: '娱乐陪玩' }
-])
+const typeOptions = ref([])
 const sortOptions = ref([
-  { id: 'rating', name: '评分最高', order: 'desc' },
-  { id: 'price', name: '价格从低到高', order: 'asc' },
-  { id: 'price', name: '价格从高到低', order: 'desc' },
-  { id: 'order_count', name: '接单最多', order: 'desc' }
+  { id: 'rating', name: '评分最高', order: 'rating_desc' },
+  { id: 'price', name: '价格从低到高', order: 'price_asc' },
+  { id: 'price', name: '价格从高到低', order: 'price_desc' },
+  { id: 'order_count', name: '接单最多', order: 'total_orders_desc' }
 ])
 
 onMounted(async () => {
   // 设置默认筛选值
   selectedGame.value = gameOptions.value[0]
   selectedLevel.value = levelOptions.value[0]
-  selectedType.value = typeOptions.value[0]
   selectedSort.value = sortOptions.value[0]
 
   // 加载游戏列表
   await loadGames()
 
+  // 加载服务类型列表
+  await loadServiceTypes()
+
   // 加载陪玩师列表
   await loadCompanions()
 })
+
+// 加载服务类型列表
+const loadServiceTypes = async () => {
+  try {
+    const res = await getDictList('service_type')
+    if (res.code === 200) {
+      typeOptions.value = [
+        { id: '', name: '全部类型' },
+        ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
+      ]
+      
+      selectedType.value = typeOptions.value[0]
+    }
+  } catch (error) {
+    console.error('加载服务类型列表失败', error)
+  }
+}
+
+// 加载等级列表
+const loadLevels = async () => {
+  try {
+    const res = await getDictList(`game_level_${selectedGame.value.id}`)
+    if (res.code === 200) {
+      levelOptions.value = [
+        { id: '', name: '全部等级' },
+        ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
+      ]
+      selectedLevel.value = levelOptions.value[0]
+      console.log(levelOptions.value)
+    }
+  } catch (error) {
+    console.error('加载等级列表失败', error)
+  }
+}
 
 // 加载游戏列表
 const loadGames = async () => {
   try {
     const res = await getGameList()
     if (res.code === 200) {
-      const items = res.data.items || []
+      const items = res.data || []
       games.value = items
       gameOptions.value = [
         { id: '', name: '全部游戏' },
-        ...items.map(game => ({ id: game.id, name: game.name }))
+        ...items.map(game => ({ id: game.value, name: game.label }))
       ]
     }
   } catch (error) {
@@ -167,8 +197,7 @@ const loadCompanions = async () => {
     const params = {
       page: page.value,
       page_size: pageSize.value,
-      sort_by: selectedSort.value.id,
-      sort_order: selectedSort.value.order
+      sort: selectedSort.value.order
     }
 
     // 添加筛选条件
@@ -260,12 +289,15 @@ const showGamePicker = () => {
     success: (res) => {
       selectedGame.value = gameOptions.value[res.tapIndex]
       page.value = 1
+      // 获取等级列表
+      loadLevels()
       loadCompanions()
     }
   })
 }
 
 const showLevelPicker = () => {
+  if (!selectedGame.value.id) return
   uni.showActionSheet({
     itemList: levelOptions.value.map(item => item.name),
     success: (res) => {
@@ -311,16 +343,16 @@ const goBack = () => {
 }
 
 // 触底加载更多
-onReachBottom(() => {
-  if (hasMore.value && !loading.value) {
-    page.value++
-    if (keyword.value.trim()) {
-      handleSearch()
-    } else {
-      loadCompanions()
-    }
-  }
-})
+// onReachBottom(() => {
+//   if (hasMore.value && !loading.value) {
+//     page.value++
+//     if (keyword.value.trim()) {
+//       handleSearch()
+//     } else {
+//       loadCompanions()
+//     }
+//   }
+// })
 </script>
 
 <style lang="scss" scoped>
@@ -375,6 +407,10 @@ onReachBottom(() => {
     height: 80rpx;
     font-size: 26rpx;
     color: #666;
+
+    &.disabled {
+      color: rgba(102, 102, 102, 0.5);
+    }
 
     .filter-text {
       margin-right: 6rpx;
