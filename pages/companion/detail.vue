@@ -53,12 +53,12 @@
           @tap="selectService(service)"
         >
           <view class="service-info">
-            <text class="service-name">{{ service.name }}</text>
-            <text class="service-desc">{{ service.description }}</text>
+            <text class="service-name">{{ service.serviceTypeName }}</text>
+            <text class="service-desc">{{ service.description || '专业陪玩服务' }}</text>
           </view>
           <view class="service-price">
             <text class="price">¥{{ service.price }}</text>
-            <text class="unit">/小时</text>
+            <text class="unit">/{{ service.priceUnit || '' }}</text>
           </view>
         </view>
       </view>
@@ -89,7 +89,7 @@
     <view class="reviews-section">
       <view class="section-title">
         <text>用户评价</text>
-        <text class="more" @tap="goToAllReviews">查看全部 ></text>
+        <view class="more" @tap="goToAllReviews">查看全部 <uni-icons type="right" size="14" color="#666"></uni-icons></view>
       </view>
       <view class="review-list">
         <view class="review-item" v-for="review in reviews" :key="review.id">
@@ -112,7 +112,7 @@
               @tap="previewReviewImage(index, review.images || review.image_urls)"
             ></image>
           </view>
-          <text class="review-time">{{ review.createTime || review.created_at }}</text>
+          <view class="review-time">{{ review.createTime || review.created_at }}</view>
         </view>
       </view>
     </view>
@@ -171,10 +171,7 @@ const loadCompanionDetail = async () => {
       // 转换snake_case到camelCase用于展示
       companionInfo.value = {
         ...res.data,
-        avatarUrl: res.data.avatar_url,
-        isOnline: res.data.online_status === 'online',
-        orderCount: res.data.order_count || 0,
-        goodRate: res.data.good_rate || 100
+        avatarUrl: res.data.avatar,
       }
     }
   } catch (error) {
@@ -210,7 +207,7 @@ const loadReviews = async () => {
   try {
     const res = await getCompanionReviews(companionId.value, { page: 1, pageSize: 3 })
     if (res.code === 200) {
-      reviews.value = res.data.list || []
+      reviews.value = res.data || []
     }
   } catch (error) {
     console.error('获取评价列表失败', error)
@@ -564,8 +561,10 @@ const previewReviewImage = (index, images) => {
     }
 
     .review-time {
-      font-size: 24rpx;
+      font-size: 22rpx;
       color: #999;
+      display: flex;
+      justify-content: flex-end;
     }
   }
 }

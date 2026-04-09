@@ -25,6 +25,14 @@
       }
     },
     {
+      "path": "pages/companion/reviews",
+      "style": {
+        "navigationBarTitleText": "用户评价",
+        "enablePullDownRefresh": true,
+        "onReachBottomDistance": 50
+      }
+    },
+    {
       "path": "pages/order/list",
       "style": {
         "navigationBarTitleText": "我的订单"

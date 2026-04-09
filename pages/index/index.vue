@@ -89,7 +89,7 @@
           <view class="companion-rating">
             <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
             <text class="rating-text">{{ companion.rating }}</text>
-            <text class="order-count">已接{{ companion.order_count }}单</text>
+            <text class="order-count">已接{{ companion.orderCount }}单</text>
           </view>
         </view>
       </view>

@@ -539,6 +539,7 @@ const submitOrder = async () => {
     border-radius: 40rpx;
     font-size: 32rpx;
     border: none;
+    margin: 0;
 
     &::after {
       border: none;

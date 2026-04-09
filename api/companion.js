@@ -37,7 +37,7 @@ export function getCompanionList(params) {
  * @returns {Promise}
  */
 export function getCompanionDetail(companionId) {
-  return get(`/companions/${companionId}`)
+  return get(`/companion/${companionId}`)
 }
 
 /**
