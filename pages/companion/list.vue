@@ -21,24 +21,65 @@
       <text class="cancel-btn" @tap="goBack">取消</text>
     </view>
     
-    <!-- 筛选条件 -->
+    <!-- 筛选条件 - 改造为 Picker 组件 -->
     <view class="filter-bar">
-      <view class="filter-item" @tap="showGamePicker">
-        <text class="filter-text">{{ selectedGame.name || '游戏' }}</text>
-        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
-      </view>
-      <view :class="`filter-item ${selectedGame.id ? '' : 'disabled'}`" @tap="showLevelPicker">
-        <text class="filter-text">{{ selectedLevel.name || '等级' }}</text>
-        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
-      </view>
-      <view class="filter-item" @tap="showTypePicker">
-        <text class="filter-text">{{ selectedType.name || '服务类型' }}</text>
-        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
-      </view>
-      <view class="filter-item" @tap="showSortPicker">
-        <text class="filter-text">{{ selectedSort.name || '排序' }}</text>
-        <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
-      </view>
+      <!-- 1. 游戏选择 -->
+      <picker
+        class="filter-item"
+        :value="gameIndex"
+        :range="gameOptions"
+        range-key="name"
+        @change="onGameChange"
+      >
+        <view>
+          <text class="filter-text">{{ selectedGame.name || '游戏' }}</text>
+          <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
+        </view>
+      </picker>
+      
+      <!-- 2. 等级选择 (核心改动：增加 picker 包裹) -->
+      <picker
+        class="filter-item"
+        :class="{ disabled: !selectedGame.id }"
+        :value="levelIndex"
+        :range="levelOptions"
+        range-key="name"
+        @change="onLevelChange"
+        :disabled="!selectedGame.id"
+      >
+        <view>
+          <text class="filter-text">{{ selectedLevel.name || '等级' }}</text>
+          <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
+        </view>
+      </picker>
+      
+      <!-- 3. 服务类型选择 -->
+      <picker
+        class="filter-item"
+        :value="typeIndex"
+        :range="typeOptions"
+        range-key="name"
+        @change="onTypeChange"
+      >
+        <view>
+          <text class="filter-text">{{ selectedType.name || '服务类型' }}</text>
+          <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
+        </view>
+      </picker>
+      
+      <!-- 4. 排序选择 -->
+      <picker
+        class="filter-item"
+        :value="sortIndex"
+        :range="sortOptions"
+        range-key="name"
+        @change="onSortChange"
+      >
+        <view>
+          <text class="filter-text">{{ selectedSort.name || '排序' }}</text>
+          <uni-icons type="arrowdown" size="14" color="#666"></uni-icons>
+        </view>
+      </picker>
     </view>
 
     <!-- 陪玩师列表 -->
@@ -65,11 +106,11 @@
           <view class="rating">
             <uni-icons type="star-filled" size="12" color="#FFB800"></uni-icons>
             <text class="rating-text">{{ companion.rating }}</text>
-            <text class="order-count">已接{{ companion.order_count }}单</text>
+            <text class="order-count">已接{{ companion.orderCount }}单</text>
           </view>
           <view class="price-row">
             <text class="price">¥{{ companion.price }}</text>
-            <text class="unit">/{{ companion.price_unit }}</text>
+            <text class="unit">/{{ companion.priceUnit }}</text>
           </view>
         </view>
       </view>
@@ -90,14 +131,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { searchCompanions, getCompanionList } from '@/api/companion'
+import { ref, onMounted, watch } from 'vue'
+import { getCompanionList } from '@/api/companion'
 import { getDictList } from '@/api/ditc'
 import { getGameList } from '@/api/game'
 
 const keyword = ref('')
 const companions = ref([])
-const games = ref([])
 const hasMore = ref(true)
 const loading = ref(false)
 const page = ref(1)
@@ -109,33 +149,66 @@ const selectedLevel = ref({})
 const selectedType = ref({})
 const selectedSort = ref({})
 
+// Picker 索引变量 (核心新增：控制组件滚动位置)
+const gameIndex = ref(0)
+const levelIndex = ref(0)
+const typeIndex = ref(0)
+const sortIndex = ref(0)
+
+// 选项数据源
 const gameOptions = ref([{ id: '', name: '全部游戏' }])
-const levelOptions = ref([
-  { id: '', name: '全部等级' },
-])
-const typeOptions = ref([])
+const levelOptions = ref([{ id: '', name: '全部等级' }])
+const typeOptions = ref([{ id: '', name: '全部类型' }])
 const sortOptions = ref([
   { id: 'rating', name: '评分最高', order: 'rating_desc' },
-  { id: 'price', name: '价格从低到高', order: 'price_asc' },
-  { id: 'price', name: '价格从高到低', order: 'price_desc' },
+  { id: 'price_asc', name: '价格从低到高', order: 'price_asc' },
+  { id: 'price_desc', name: '价格从高到高', order: 'price_desc' },
   { id: 'order_count', name: '接单最多', order: 'total_orders_desc' }
 ])
 
 onMounted(async () => {
-  // 设置默认筛选值
+  // 初始化数据
+  await Promise.all([loadGames(), loadServiceTypes()])
+  
+  // 设置默认选中第一项
   selectedGame.value = gameOptions.value[0]
   selectedLevel.value = levelOptions.value[0]
+  selectedType.value = typeOptions.value[0]
   selectedSort.value = sortOptions.value[0]
-
-  // 加载游戏列表
-  await loadGames()
-
-  // 加载服务类型列表
-  await loadServiceTypes()
-
-  // 加载陪玩师列表
-  await loadCompanions()
+  
+  // 初始加载列表
+  loadCompanions()
 })
+
+// 监听游戏变化，联动重置等级
+watch(selectedGame, async () => {
+  // 重置等级选中状态
+  selectedLevel.value = levelOptions.value[0]
+  levelIndex.value = 0
+  
+  // 加载新的等级列表
+  if (selectedGame.value.id) {
+    await loadLevels()
+  } else {
+    levelOptions.value = [{ id: '', name: '全部等级' }]
+  }
+}, { deep: true })
+
+// 加载游戏列表
+const loadGames = async () => {
+  try {
+    const res = await getGameList()
+    if (res.code === 200) {
+      const items = res.data || []
+      gameOptions.value = [
+        { id: '', name: '全部游戏' },
+        ...items.map(game => ({ id: game.value, name: game.label }))
+      ]
+    }
+  } catch (error) {
+    console.error('加载游戏列表失败', error)
+  }
+}
 
 // 加载服务类型列表
 const loadServiceTypes = async () => {
@@ -146,8 +219,6 @@ const loadServiceTypes = async () => {
         { id: '', name: '全部类型' },
         ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
       ]
-      
-      selectedType.value = typeOptions.value[0]
     }
   } catch (error) {
     console.error('加载服务类型列表失败', error)
@@ -156,6 +227,8 @@ const loadServiceTypes = async () => {
 
 // 加载等级列表
 const loadLevels = async () => {
+  if (!selectedGame.value.id) return
+  
   try {
     const res = await getDictList(`game_level_${selectedGame.value.id}`)
     if (res.code === 200) {
@@ -163,28 +236,11 @@ const loadLevels = async () => {
         { id: '', name: '全部等级' },
         ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
       ]
+      // 加载完数据后，默认选中第一项
       selectedLevel.value = levelOptions.value[0]
-      console.log(levelOptions.value)
     }
   } catch (error) {
     console.error('加载等级列表失败', error)
-  }
-}
-
-// 加载游戏列表
-const loadGames = async () => {
-  try {
-    const res = await getGameList()
-    if (res.code === 200) {
-      const items = res.data || []
-      games.value = items
-      gameOptions.value = [
-        { id: '', name: '全部游戏' },
-        ...items.map(game => ({ id: game.value, name: game.label }))
-      ]
-    }
-  } catch (error) {
-    console.error('加载游戏列表失败', error)
   }
 }
 
@@ -197,144 +253,79 @@ const loadCompanions = async () => {
     const params = {
       page: page.value,
       page_size: pageSize.value,
-      sort: selectedSort.value.order
+      sort: selectedSort.value.order || 'rating_desc'
     }
 
-    // 添加筛选条件
-    if (selectedGame.value.id) {
-      params.game_id = selectedGame.value.id
-    }
-    if (selectedLevel.value.id) {
-      params.level = selectedLevel.value.id
-    }
-    if (selectedType.value.id) {
-      params.service_type = selectedType.value.id
-    }
+    if (selectedGame.value.id) params.game_id = selectedGame.value.id
+    if (selectedLevel.value.id) params.level = selectedLevel.value.id
+    if (selectedType.value.id) params.service_type = selectedType.value.id
 
-    const res = await getCompanionList(params)
+    // 区分是搜索还是普通加载
+    const requestFunc = getCompanionList
+    const res = await requestFunc(keyword.value.trim() ? { keyword: keyword.value.trim() } : params)
 
     if (res.code === 200) {
       const items = res.data.items || []
-      if (page.value === 1) {
-        companions.value = items
-      } else {
-        companions.value = [...companions.value, ...items]
-      }
-
-      const pagination = res.data.pagination || {}
-      hasMore.value = pagination.has_more || false
+      companions.value = page.value === 1 ? items : [...companions.value, ...items]
+      hasMore.value = res.data.pagination?.has_more || false
     }
   } catch (error) {
-    console.error('加载陪玩师列表失败', error)
-    uni.showToast({
-      title: '加载失败',
-      icon: 'none'
-    })
+    console.error('加载失败', error)
+    uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-// 搜索陪玩师
-const handleSearch = async () => {
-  if (!keyword.value.trim()) {
-    page.value = 1
-    loadCompanions()
-    return
-  }
-
-  loading.value = true
-  try {
-    const params = {
-      keyword: keyword.value.trim(),
-      page: page.value,
-      page_size: pageSize.value
-    }
-
-    const res = await searchCompanions(params)
-
-    if (res.code === 200) {
-      const items = res.data.items || []
-      if (page.value === 1) {
-        companions.value = items
-      } else {
-        companions.value = [...companions.value, ...items]
-      }
-
-      const pagination = res.data.pagination || {}
-      hasMore.value = pagination.has_more || false
-    }
-  } catch (error) {
-    console.error('搜索失败', error)
-    uni.showToast({
-      title: '搜索失败',
-      icon: 'none'
-    })
-  } finally {
-    loading.value = false
-  }
+// 搜索
+const handleSearch = () => {
+  page.value = 1
+  loadCompanions()
 }
 
 // 清除关键词
 const clearKeyword = () => {
   keyword.value = ''
+  handleSearch()
+}
+
+// Picker 改变事件 (核心逻辑：同步选中状态并刷新数据)
+const onGameChange = (e) => {
+  const index = e.detail.value
+  selectedGame.value = gameOptions.value[index]
+  gameIndex.value = index
+  page.value = 1
+  // loadLevels 已通过 watch 监听 selectedGame 自动触发
+  loadCompanions()
+}
+
+const onLevelChange = (e) => {
+  const index = e.detail.value
+  selectedLevel.value = levelOptions.value[index]
+  levelIndex.value = index
   page.value = 1
   loadCompanions()
 }
 
-// 显示选择器
-const showGamePicker = () => {
-  uni.showActionSheet({
-    itemList: gameOptions.value.map(item => item.name),
-    success: (res) => {
-      selectedGame.value = gameOptions.value[res.tapIndex]
-      page.value = 1
-      // 获取等级列表
-      loadLevels()
-      loadCompanions()
-    }
-  })
+const onTypeChange = (e) => {
+  const index = e.detail.value
+  selectedType.value = typeOptions.value[index]
+  typeIndex.value = index
+  page.value = 1
+  loadCompanions()
 }
 
-const showLevelPicker = () => {
-  if (!selectedGame.value.id) return
-  uni.showActionSheet({
-    itemList: levelOptions.value.map(item => item.name),
-    success: (res) => {
-      selectedLevel.value = levelOptions.value[res.tapIndex]
-      page.value = 1
-      loadCompanions()
-    }
-  })
-}
-
-const showTypePicker = () => {
-  uni.showActionSheet({
-    itemList: typeOptions.value.map(item => item.name),
-    success: (res) => {
-      selectedType.value = typeOptions.value[res.tapIndex]
-      page.value = 1
-      loadCompanions()
-    }
-  })
-}
-
-const showSortPicker = () => {
-  uni.showActionSheet({
-    itemList: sortOptions.value.map(item => item.name),
-    success: (res) => {
-      selectedSort.value = sortOptions.value[res.tapIndex]
-      page.value = 1
-      loadCompanions()
-    }
-  })
+const onSortChange = (e) => {
+  const index = e.detail.value
+  selectedSort.value = sortOptions.value[index]
+  sortIndex.value = index
+  page.value = 1
+  loadCompanions()
 }
 
 // 跳转详情
 const goToDetail = (id) => {
-  uni.navigateTo({
-    url: `/pages/companion/detail?id=${id}`
-  })
+  uni.navigateTo({ url: `/pages/companion/detail?id=${id}` })
 }
 
 // 返回
@@ -343,14 +334,10 @@ const goBack = () => {
 }
 
 // 触底加载更多
-// onReachBottom(() => {
+// uni.onReachBottom(() => {
 //   if (hasMore.value && !loading.value) {
 //     page.value++
-//     if (keyword.value.trim()) {
-//       handleSearch()
-//     } else {
-//       loadCompanions()
-//     }
+//     loadCompanions()
 //   }
 // })
 </script>
