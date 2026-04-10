@@ -34,14 +34,14 @@ export const useAppStore = defineStore('app', {
   }),
 
   getters: {
+    // 获取系统信息
+    getSystemInfoState: (state) => state.systemInfo,
     // 获取主题色
     getThemeColor: (state) => state.themeColor,
-    // 获取系统信息
-    getSystemInfo: (state) => state.systemInfo,
     // 获取加载状态
     getLoading: (state) => state.loading,
     // 获取网络状态
-    getNetworkType: (state) => state.networkType,
+    networkTypeState: (state) => state.networkType,
     // 判断是否在线
     getIsOnline: (state) => state.isOnline,
     // 获取配置
@@ -104,8 +104,10 @@ export const useAppStore = defineStore('app', {
     // 设置当前页面
     setCurrentPage(page) {
       this.currentPage = page
-      // 添加到页面栈
-      this.pageStack.push(page)
+      // 避免重复页面入栈
+      if (this.pageStack[this.pageStack.length - 1] !== page) {
+        this.pageStack.push(page)
+      }
       // 限制栈大小
       if (this.pageStack.length > 10) {
         this.pageStack.shift()

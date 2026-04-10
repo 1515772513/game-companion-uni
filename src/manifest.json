@@ -5,6 +5,36 @@
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
+    "h5": {
+        "title": "陪玩平台",
+        "router": {
+        "mode": "hash",
+        "base": "/"
+        },
+        "publicPath": "/",
+        "devServer": {
+        "port": 3000,
+        "disableHostCheck": true
+        },
+        "optimization": {
+        "treeShaking": {
+            "enable": true
+        }
+        },
+        "style": {
+        "extCss": {
+            "enable": true
+        }
+        },
+        "adaptation": {
+        "designWidth": 750,
+        "deviceRatio": {
+            "640": 2.34 / 2,
+            "750": 1,
+            "828": 1.81 / 2
+        }
+        }
+    },
     "mp-weixin" : {
         "appid" : "wx0cbe906910dac8d2",
         "setting" : {
