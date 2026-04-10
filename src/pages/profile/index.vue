@@ -6,7 +6,7 @@
         <image :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill" class="avatar"></image>
         <view class="info">
           <view class="name-row">
-            <text class="name">{{ userInfo.nickname || '未登录' }}</text>
+            <text class="name" @tap="goToLogin">{{ userInfo.nickname || '未登录' }}</text>
             <view class="vip-badge" v-if="userInfo.isVip">
               <uni-icons type="vip-filled" size="16" color="#FFD700"></uni-icons>
               <text>VIP</text>
@@ -293,6 +293,13 @@ const handleLogout = () => {
     }
   })
 }
+
+const goToLogin = () => {
+  uni.navigateTo({
+    url: '/pages/user/login'
+  })
+}
+
 </script>
 
 <style lang="scss" scoped>

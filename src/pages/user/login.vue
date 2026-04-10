@@ -4,23 +4,23 @@
       <!-- Logo -->
       <view class="logo-section">
         <image src="/static/logo.png" mode="aspectFit" class="logo"></image>
-        <text class="app-name">游戏陪玩</text>
+        <text class="app-name">木子陪玩</text>
         <text class="app-slogan">专业游戏陪玩平台</text>
       </view>
 
       <!-- 微信登录 -->
-      <view class="wechat-login-section">
+      <!-- <view class="wechat-login-section">
         <view class="login-title">微信一键登录</view>
         <button class="wechat-login-btn" @tap="handleWechatLogin" :loading="loading">
           <uni-icons type="weixin" size="24" color="#fff"></uni-icons>
           <text>微信登录</text>
         </button>
-      </view>
+      </view> -->
 
       <!-- 其他登录方式 -->
       <view class="other-login-section">
         <view class="divider">
-          <text class="divider-text">其他登录方式</text>
+          <text class="divider-text">手机号一键登录</text>
         </view>
 
         <!-- 手机号登录 -->
@@ -143,7 +143,7 @@ const viewAgreement = (type) => {
 
 <style lang="scss" scoped>
 .login-page {
-  min-height: 100vh;
+  height: 100%;
   background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
   display: flex;
   align-items: center;

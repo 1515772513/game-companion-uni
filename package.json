@@ -4,7 +4,7 @@
   "description": "游戏陪玩平台微信小程序",
   "main": "main.js",
   "scripts": {
-    "dev:h5": "uni build --mode development",
+    "dev:h5": "uni",
     "dev:mp-weixin": "uni build --mode development --platform mp-weixin",
     "build:test:h5": "uni build --mode test",
     "build:test:mp-weixin": "uni build --mode test --platform mp-weixin",
@@ -15,11 +15,12 @@
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4040520250104002",
     "@dcloudio/uni-mp-weixin": "3.0.0-4040520250104002",
-    "pinia": "^2.1.7",
-    "vue": "^3.4.21"
+    "pinia": "2.0.36",
+    "vue": "3.4.21"
   },
   "devDependencies": {
     "@dcloudio/vite-plugin-uni": "3.0.0-4040520250104002",
+    "@vue/runtime-core": "3.4.21",
     "sass": "^1.72.0",
     "vite": "^5.1.4"
   }
