@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { smsLogin } from '@/api/user.js'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -65,25 +66,16 @@ export const useUserStore = defineStore('user', {
     async login(loginData) {
       try {
         // 这里调用登录API
-        // const res = await loginApi(loginData)
-        // 模拟登录成功
-        const mockData = {
-          token: 'mock_token_' + Date.now(),
-          userInfo: {
-            id: '1',
-            nickname: '游戏玩家',
-            avatar: '/static/images/default-avatar.png',
-            phone: loginData.phone || '13800138000'
-          }
-        }
+        const res = await smsLogin(loginData)
+        const data = res.data
 
-        this.setToken(mockData.token)
-        this.setUserInfo(mockData.userInfo)
+        this.setToken(data.token)
+        this.setUserInfo(data.userInfo)
 
         // 持久化用户信息
-        uni.setStorageSync('userInfo', mockData.userInfo)
+        uni.setStorageSync('userInfo', data.userInfo)
 
-        return { success: true, data: mockData }
+        return { success: true, data: data }
       } catch (error) {
         console.error('登录失败:', error)
         return { success: false, message: error.message }

@@ -404,3 +404,14 @@ export function deleteAccount(data) {
 export function getAgreement(type) {
   return get('/user/agreement', { type })
 }
+
+
+/**
+ * 手机号登录
+ * @param {Object} data - 登录数据
+ * @param {string} data.phone - 手机号
+ * @returns {Promise}
+ */
+export function smsLogin(data) {
+  return post('/auth/sms-login', data)
+}
