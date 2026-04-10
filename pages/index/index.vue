@@ -76,7 +76,7 @@
           <view class="companion-name-row">
             <text class="companion-name">{{ companion.nickname }}</text>
             <view class="level-badge">{{ companion.levelName }}</view>
-            <view class="online-status" :class="{ online: companion.online_status === 1 }"></view>
+            <view class="online-status" :class="{ online: companion.onlineStatus === 'online', busy: companion.onlineStatus === 'busy' }"></view>
           </view>
           <view class="companion-tags">
             <text class="tag" v-for="tag in companion.tags" :key="tag">{{ tag }}</text>
@@ -413,6 +413,10 @@ const goToDetail = (id) => {
 
           &.online {
             background-color: #52c41a;
+          }
+
+          &.busy {
+            background-color: #FFB800;
           }
         }
       }

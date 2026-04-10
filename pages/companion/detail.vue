@@ -7,8 +7,8 @@
       <view class="header-content">
         <view class="avatar-row">
           <image :src="companionInfo.avatarUrl || companionInfo.avatar" mode="aspectFill" class="avatar"></image>
-          <view class="online-status" :class="{ online: companionInfo.isOnline }">
-            {{ companionInfo.isOnline ? '在线' : '离线' }}
+          <view class="online-status" :class="{ online: companionInfo.onlineStatus === 'online', busy: companionInfo.onlineStatus === 'busy'  }">
+            {{ companionInfo.onlineStatus === 'online' ? '在线' : (companionInfo.onlineStatus === 'busy' ? '接单中' : '离线') }}
           </view>
         </view>
         <view class="name-row">
@@ -341,6 +341,10 @@ const previewReviewImage = (index, images) => {
 
         &.online {
           background-color: #52c41a;
+        }
+
+        &.busy {
+          background-color: #FFB800;
         }
       }
     }
