@@ -238,7 +238,7 @@ const toggleFavorite = async () => {
   } catch (error) {
     console.error('收藏操作失败', error)
     uni.showToast({
-      title: '操作失败',
+      title: error?.message || error?.msg || '操作失败',
       icon: 'none'
     })
   }

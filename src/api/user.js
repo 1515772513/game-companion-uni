@@ -33,7 +33,7 @@ export function loginByPhone(data) {
  * @returns {Promise}
  */
 export function loginByWechat(data) {
-  return post('/user/login/wechat', data)
+  return post('/auth/login-wechat', data)
 }
 
 /**

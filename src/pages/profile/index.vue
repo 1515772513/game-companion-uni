@@ -6,6 +6,7 @@
         <image :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill" class="avatar"></image>
         <view class="info">
           <view class="name-row">
+            {{userInfo}}
             <text class="name" @tap="goToLogin">{{ userInfo.nickname || '未登录' }}</text>
             <view class="vip-badge" v-if="userInfo.isVip">
               <uni-icons type="vip-filled" size="16" color="#FFD700"></uni-icons>
@@ -160,6 +161,11 @@ const orderStats = ref({
 })
 
 onMounted(() => {
+  loadUserInfo()
+  loadOrderStats()
+})
+
+onShow(() => {
   loadUserInfo()
   loadOrderStats()
 })

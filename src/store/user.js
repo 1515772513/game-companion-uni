@@ -97,8 +97,8 @@ export const useUserStore = defineStore('user', {
       uni.removeStorageSync('userInfo')
 
       // 跳转到登录页
-      uni.reLaunch({
-        url: '/pages/login/login'
+      uni.navigateTo({
+        url: '/pages/user/login'
       })
     },
 

@@ -136,11 +136,11 @@ function handleUnauthorized() {
   userStore.logout()
 
   // 跳转登录页
-  setTimeout(() => {
-    uni.reLaunch({
-      url: '/pages/login/login'
-    })
-  }, 500)
+  // setTimeout(() => {
+  //   uni.navigateTo({
+  //     url: '/pages/user/login'
+  //   })
+  // }, 500)
 }
 
 // 处理网络错误

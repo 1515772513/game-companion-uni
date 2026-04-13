@@ -9,16 +9,16 @@
       </view>
 
       <!-- 微信登录 -->
-      <!-- <view class="wechat-login-section">
+      <view class="wechat-login-section">
         <view class="login-title">微信一键登录</view>
         <button class="wechat-login-btn" @tap="handleWechatLogin" :loading="loading">
           <uni-icons type="weixin" size="24" color="#fff"></uni-icons>
           <text>微信登录</text>
         </button>
-      </view> -->
+      </view>
 
       <!-- 其他登录方式 -->
-      <view class="other-login-section">
+      <view class="other-login-section" v-if="false">
         <view class="divider">
           <text class="divider-text">手机号一键登录</text>
         </view>
@@ -67,6 +67,7 @@ const pageHeight = computed(() => {
   return uni.getSystemInfoSync().windowHeight
 })
 
+// 登录方法
 const handleWechatLogin = async () => {
   if (!agreed.value) {
     uni.showToast({
@@ -79,50 +80,46 @@ const handleWechatLogin = async () => {
   loading.value = true
 
   try {
-    // 获取微信登录授权码
-    const res = await uni.login({
-      provider: 'weixin'
+    const userInfo = await uni.getUserProfile({
+      desc: '用于登录'
     })
 
-    if (res[1].code) {
-      // 调用登录接口
-      const loginRes = await loginByWechat({
-        code: res[1].code
-      })
+    console.log('获取用户信息成功', userInfo)
+    
+    const loginRes = await uni.login()
+    const code = loginRes.code
 
-      if (loginRes.code === 200) {
-        // 保存token
-        uni.setStorageSync('token', loginRes.data.token)
-        uni.setStorageSync('userInfo', loginRes.data.userInfo)
-
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success'
-        })
-
-        setTimeout(() => {
-          uni.switchTab({
-            url: '/pages/index/index'
-          })
-        }, 1500)
-      } else {
-        uni.showToast({
-          title: loginRes.message || '登录失败',
-          icon: 'none'
-        })
-      }
-    } else {
-      uni.showToast({
-        title: '获取微信授权码失败',
-        icon: 'none'
-      })
+    if (!code) {
+      uni.showToast({ title: '获取微信授权失败', icon: 'none' })
+      return
     }
-  } catch (error) {
-    console.error('微信登录失败', error)
-    uni.showToast({
-      title: '登录失败，请重试',
-      icon: 'none'
+    
+    const res = await loginByWechat({
+      openid: code,
+      nickName: userInfo.userInfo.nickName,
+      avatar: userInfo.userInfo.avatarUrl
     })
+
+    if (res.code === 200) {
+      uni.setStorageSync('token', res.data.token)
+      uni.setStorageSync('userInfo', res.data.userInfo)
+
+      uni.showToast({ title: '登录成功', icon: 'success' })
+
+      // 如果有上一级直接返回
+      uni.navigateBack({
+        delta: 1
+      })
+
+      // setTimeout(() => {
+      //   uni.switchTab({ url: '/pages/index/index' })
+      // }, 1500)
+    } else {
+      uni.showToast({ title: res.message || '登录失败', icon: 'none' })
+    }
+  } catch (err) {
+    console.error('登录错误', err)
+    uni.showToast({ title: '登录失败，请重试', icon: 'none' })
   } finally {
     loading.value = false
   }
