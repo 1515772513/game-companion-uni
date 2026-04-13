@@ -185,9 +185,9 @@ const loadUserInfo = async () => {
         id: data.id || data.user_id
       }
       stats.value = {
-        orderCount: data.order_count || data.orderCount || 0,
+        orderCount: data.orderCount || 0,
         userCollectionCount: data.userCollectionCount || 0,
-        couponCount: data.coupon_count || data.couponCount || 0,
+        couponCount: data.couponCount || 0,
         balance: data.balance || 0
       }
     }
