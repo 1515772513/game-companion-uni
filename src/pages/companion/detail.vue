@@ -221,14 +221,14 @@ const selectService = (service) => {
 const toggleFavorite = async () => {
   try {
     if (companionInfo.value.isFavorite) {
-      await removeFavorite(companionId.value)
+      await removeFavorite({ ItemId: companionId.value })
       companionInfo.value.isFavorite = false
       uni.showToast({
         title: '取消收藏',
         icon: 'success'
       })
     } else {
-      await addFavorite({ companionId: companionId.value })
+      await addFavorite({ ItemId: companionId.value })
       companionInfo.value.isFavorite = true
       uni.showToast({
         title: '收藏成功',

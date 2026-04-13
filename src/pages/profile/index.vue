@@ -6,7 +6,6 @@
         <image :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill" class="avatar"></image>
         <view class="info">
           <view class="name-row">
-            {{userInfo}}
             <text class="name" @tap="goToLogin">{{ userInfo.nickname || '未登录' }}</text>
             <view class="vip-badge" v-if="userInfo.isVip">
               <uni-icons type="vip-filled" size="16" color="#FFD700"></uni-icons>
@@ -27,7 +26,7 @@
           <text class="stat-label">订单</text>
         </view>
         <view class="stat-item" @tap="goToFavorites">
-          <text class="stat-value">{{ stats.favoriteCount || 0 }}</text>
+          <text class="stat-value">{{ stats.userCollectionCount || 0 }}</text>
           <text class="stat-label">收藏</text>
         </view>
         <view class="stat-item" @tap="goToCoupons">
@@ -51,15 +50,15 @@
         </view>
       </view>
       <view class="order-types">
-        <view class="order-type-item" @tap="goToOrders('pending')">
+        <view class="order-type-item" @tap="goToOrders('pendingPayment')">
           <uni-icons type="wallet" size="28" color="#3b82f6"></uni-icons>
           <text class="type-label">待支付</text>
-          <view class="badge" v-if="orderStats.pending > 0">{{ orderStats.pending }}</view>
+          <view class="badge" v-if="orderStats.pendingPayment > 0">{{ orderStats.pendingPayment }}</view>
         </view>
-        <view class="order-type-item" @tap="goToOrders('ongoing')">
+        <view class="order-type-item" @tap="goToOrders('inProgress')">
           <uni-icons type="loop" size="28" color="#52c41a"></uni-icons>
           <text class="type-label">进行中</text>
-          <view class="badge" v-if="orderStats.ongoing > 0">{{ orderStats.ongoing }}</view>
+          <view class="badge" v-if="orderStats.inProgress > 0">{{ orderStats.inProgress }}</view>
         </view>
         <view class="order-type-item" @tap="goToOrders('completed')">
           <uni-icons type="checkbox-filled" size="28" color="#FFB800"></uni-icons>
@@ -145,11 +144,14 @@
 import { ref, onMounted } from 'vue'
 import { getUserInfo, logout } from '@/api/user'
 import { getOrderStats } from '@/api/order'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
 
 const userInfo = ref({})
 const stats = ref({
   orderCount: 0,
-  favoriteCount: 0,
+  userCollectionCount: 0,
   couponCount: 0,
   balance: 0
 })
@@ -160,14 +162,16 @@ const orderStats = ref({
   refund: 0
 })
 
-onMounted(() => {
-  loadUserInfo()
-  loadOrderStats()
-})
+// onMounted(() => {
+//   loadUserInfo()
+//   loadOrderStats()
+// })
 
 onShow(() => {
-  loadUserInfo()
-  loadOrderStats()
+  if (userStore.token) {
+    loadUserInfo()
+    loadOrderStats()
+  }
 })
 
 const loadUserInfo = async () => {
@@ -182,7 +186,7 @@ const loadUserInfo = async () => {
       }
       stats.value = {
         orderCount: data.order_count || data.orderCount || 0,
-        favoriteCount: data.favorite_count || data.favoriteCount || 0,
+        userCollectionCount: data.userCollectionCount || 0,
         couponCount: data.coupon_count || data.couponCount || 0,
         balance: data.balance || 0
       }

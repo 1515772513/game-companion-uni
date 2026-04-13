@@ -6,6 +6,9 @@
 
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
 
 onLaunch(() => {
   console.log('App Launch')
@@ -28,6 +31,10 @@ onLaunch(() => {
       provide('$lineHeight', systems.ktxStatusHeight + systems.navigationHeight)
     }
   })
+
+  if (uni.getStorageSync('userInfo')) {
+    userStore.restoreUserInfo(uni.getStorageSync('userInfo'))
+  }
 })
 
 onShow(() => {

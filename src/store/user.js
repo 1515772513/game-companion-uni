@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { smsLogin } from '@/api/user.js'
+import { smsLogin, loginByWechat } from '@/api/user.js'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // 登录
+    // 登录 手机
     async login(loginData) {
       try {
         // 这里调用登录API
@@ -70,6 +70,28 @@ export const useUserStore = defineStore('user', {
         const data = res.data
 
         this.setToken(data.token)
+        this.setUserInfo(data.userInfo)
+
+        // 持久化用户信息
+        uni.setStorageSync('userInfo', data.userInfo)
+
+        return { success: true, data: data }
+      } catch (error) {
+        console.error('登录失败:', error)
+        return { success: false, message: error.message }
+      }
+    },
+
+    // 登录 微信
+    async loginWechat(loginData) {
+      try {
+        // 这里调用登录API
+        const res = await loginByWechat(loginData)
+        const data = res.data
+
+        console.log('登录成功:', data)
+
+        this.setToken(data.accessToken)
         this.setUserInfo(data.userInfo)
 
         // 持久化用户信息

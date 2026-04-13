@@ -54,7 +54,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import { loginByWechat } from '@/api/user'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
@@ -94,28 +93,28 @@ const handleWechatLogin = async () => {
       return
     }
     
-    const res = await loginByWechat({
+    const res = await userStore.loginWechat({
       openid: code,
       nickName: userInfo.userInfo.nickName,
       avatar: userInfo.userInfo.avatarUrl
     })
-
-    if (res.code === 200) {
-      uni.setStorageSync('token', res.data.token)
-      uni.setStorageSync('userInfo', res.data.userInfo)
-
-      uni.showToast({ title: '登录成功', icon: 'success' })
-
-      // 如果有上一级直接返回
-      uni.navigateBack({
-        delta: 1
+    
+    if (res.success) {
+      uni.showToast({
+        title: '登录成功',
+        icon: 'success'
       })
-
-      // setTimeout(() => {
-      //   uni.switchTab({ url: '/pages/index/index' })
-      // }, 1500)
+      setTimeout(() => {
+        // 返回上一页
+        uni.navigateBack({
+          delta: 1
+        })
+      }, 1500)
     } else {
-      uni.showToast({ title: res.message || '登录失败', icon: 'none' })
+      uni.showToast({
+        title: loginRes.message || '登录失败',
+        icon: 'none'
+      })
     }
   } catch (err) {
     console.error('登录错误', err)

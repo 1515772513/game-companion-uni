@@ -250,8 +250,8 @@ export function addFavorite(data) {
  * @param {string} companionId - 陪玩师ID
  * @returns {Promise}
  */
-export function removeFavorite(companionId) {
-  return del(`/user/favorite/${companionId}`)
+export function removeFavorite(data) {
+  return post(`/user/favorite-remove`, data)
 }
 
 /**

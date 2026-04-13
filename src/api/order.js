@@ -217,7 +217,7 @@ export function getOrderTimeline(orderId) {
  * @returns {Promise}
  */
 export function getOrderStats() {
-  return get('/order/stats')
+  return get('/orders/order-status')
 }
 
 /**
