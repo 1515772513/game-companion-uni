@@ -14,7 +14,7 @@ import { get, post, put, del } from '../utils/request'
  * @returns {Promise}
  */
 export function createOrder(data) {
-  return post('/order/create', data)
+  return post('/orders/create', data)
 }
 
 /**

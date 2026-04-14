@@ -82,10 +82,23 @@
           class="round-item"
           v-for="item in gameRoundOptions"
           :key="item.id"
-          :class="{ active: round === item.id }"
+          :class="{ active: round === item.id && !isCustom }"
           @tap="selectRound(item.id)"
         >
           <text class="round-text">{{ item.name }}</text>
+        </view>
+
+        <!-- 🔥 自定义数量输入框（样式和选项一致） -->
+        <view class="round-item custom-input-item" :class="{ active: isCustom }">
+          <input
+            v-model="customRound"
+            type="number"
+            class="custom-round-input"
+            placeholder="自定义"
+            @input="handleCustomInput"
+            @focus="selectCustomRound"
+            maxlength="3"
+          />
         </view>
       </view>
     </view>
@@ -157,6 +170,10 @@ const appointmentTime = ref('')
 const duration = ref(null)
 const round = ref(null)
 
+// 🔥 自定义规格
+const isCustom = ref(false)
+const customRound = ref('')
+
 const remark = ref('')
 const selectedCoupon = ref(null)
 const availableCoupons = ref([])
@@ -165,9 +182,18 @@ const submitting = ref(false)
 const gameRoundOptions = ref([])
 const durationOptions = ref([])
 
+// 计算最终数量
+const realQuantity = computed(() => {
+  if (isCustom.value) {
+    const num = parseInt(customRound.value)
+    return isNaN(num) || num < 1 ? 1 : num
+  }
+  return round.value || 1
+})
+
 const servicePrice = computed(() => {
-  if (!selectedService.value || !duration.value && !round.value) return 0
-  return (selectedService.value.price * (duration.value || round.value)).toFixed(2)
+  if (!selectedService.value) return 0
+  return (selectedService.value.price * realQuantity.value).toFixed(2)
 })
 
 const totalPrice = computed(() => {
@@ -188,29 +214,30 @@ onMounted(async () => {
 
   await loadCompanionInfo()
   await loadServices()
-  await loadCoupons()
+  // await loadCoupons()
 
-  // 设置默认日期时间为明天
+  // 默认预约时间
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   appointmentDate.value = tomorrow.toISOString().split('T')[0]
   appointmentTime.value = '10:00'
 })
 
-// 加载游戏局数列表
-const loadGameRoundounds = async () => {
+// 加载游戏局数
+const loadGameRounds = async () => {
   try {
     const res = await getDictList(`game_round_${selectedService.value.gameId}`)
     if (res.code === 200) {
-      gameRoundOptions.value = [
-        ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
-      ]
-      // 加载完数据后，默认选中第一项
-      round.value = gameRoundOptions.value[0].id
-      
+      gameRoundOptions.value = (res.data || []).map(item => ({
+        id: item.dictValue,
+        name: item.dictLabel
+      }))
+      if (gameRoundOptions.value.length) {
+        round.value = gameRoundOptions.value[0].id
+      }
     }
   } catch (error) {
-    console.error('加载游戏局数列表失败', error)
+    console.error('加载游戏局数失败', error)
   }
 }
 
@@ -231,11 +258,10 @@ const loadServices = async () => {
     if (res.code === 200) {
       const services = res.data
       selectedService.value = services.find(s => s.id == serviceId.value) || services[0]
-
-      await loadGameRoundounds()
+      await loadGameRounds()
     }
   } catch (error) {
-    console.error('获取服务列表失败', error)
+    console.error('获取服务失败', error)
   }
 }
 
@@ -256,82 +282,82 @@ const loadCoupons = async () => {
 const onDateChange = (e) => {
   appointmentDate.value = e.detail.value
 }
-
 const onTimeChange = (e) => {
   appointmentTime.value = e.detail.value
 }
-
 const selectDuration = (value) => {
   duration.value = value
 }
 
+// 选择预设规格
 const selectRound = (value) => {
   round.value = value
+  isCustom.value = false
+  customRound.value = ''
+}
+
+// 选择自定义规格
+const selectCustomRound = () => {
+  isCustom.value = true
+  round.value = null
+}
+
+// 自定义输入限制 1-999
+const handleCustomInput = () => {
+  // 如果不是数字就替换为空
+  let val = customRound.value.replace(/\D/g, '')
+  if (val > 999) val = 999
+  if (val < 1) val = 1
+  // 强制更新值
+  setTimeout(() => {
+    customRound.value = val
+  }, 0)
 }
 
 const selectCoupon = () => {
   if (availableCoupons.value.length === 0) {
-    uni.showToast({
-      title: '暂无可用优惠券',
-      icon: 'none'
-    })
+    uni.showToast({ title: '暂无可用优惠券', icon: 'none' })
     return
   }
-
-  uni.navigateTo({
-    url: '/pages/order/coupon?coupons=' + JSON.stringify(availableCoupons.value)
-  })
+  uni.navigateTo({ url: '/pages/order/coupon?coupons=' + JSON.stringify(availableCoupons.value) })
 }
 
 const submitOrder = async () => {
   if (!appointmentDate.value || !appointmentTime.value) {
-    uni.showToast({
-      title: '请选择预约时间',
-      icon: 'none'
-    })
+    uni.showToast({ title: '请选择预约时间', icon: 'none' })
+    return
+  }
+
+  const qty = realQuantity.value
+  if (!qty) {
+    uni.showToast({ title: '请选择服务数量', icon: 'none' })
     return
   }
 
   submitting.value = true
-
   try {
     const data = {
       companionId: companionId.value,
       serviceId: selectedService.value.id,
-      quantity: duration.value || round.value,
+      gameId: selectedService.value.gameId,
+      serviceCount: qty,
       appointmentTime: `${appointmentDate.value} ${appointmentTime.value}`,
-      remark: remark.value
+      specialRequirements: remark.value
     }
-
-    if (selectedCoupon.value) {
-      data.couponId = selectedCoupon.value.id
-    }
+    if (selectedCoupon.value) data.couponId = selectedCoupon.value.id
 
     const res = await createOrder(data)
-
     if (res.code === 200) {
-      uni.showToast({
-        title: '下单成功',
-        icon: 'success'
-      })
-
+      uni.showToast({ title: '下单成功', icon: 'success' })
       setTimeout(() => {
-        uni.redirectTo({
-          url: `/pages/order/payment?id=${res.data.orderId}`
-        })
+        uni.redirectTo({ url: `/pages/order/payment?id=${res.data.orderId}` })
       }, 1500)
     } else {
-      uni.showToast({
-        title: res.message || '下单失败',
-        icon: 'none'
-      })
+      uni.showToast({ title: res.message || '下单失败', icon: 'none' })
     }
   } catch (error) {
     console.error('创建订单失败', error)
-    uni.showToast({
-      title: '下单失败，请重试',
-      icon: 'none'
-    })
+    uni.showToast({ title: '下单失败，请重试', icon: 'none' })
   } finally {
     submitting.value = false
   }
@@ -345,7 +371,9 @@ const submitOrder = async () => {
   padding-bottom: 120rpx;
 }
 
-.companion-section, .service-section, .appointment-section, .duration-section, .round-section, .remark-section, .coupon-section, .price-detail-section, .game-section {
+.companion-section, .service-section, .appointment-section,
+.duration-section, .round-section, .remark-section,
+.coupon-section, .price-detail-section, .game-section {
   background-color: #fff;
   margin-bottom: 20rpx;
   padding: 30rpx;
@@ -379,7 +407,6 @@ const submitOrder = async () => {
       color: #333;
       margin-bottom: 8rpx;
     }
-
     .service {
       font-size: 24rpx;
       color: #999;
@@ -398,20 +425,8 @@ const submitOrder = async () => {
   justify-content: space-between;
   padding: 16rpx 0;
 
-  .label {
-    font-size: 26rpx;
-    color: #666;
-  }
-
-  .value {
-    font-size: 26rpx;
-    color: #333;
-
-    &.price {
-      color: #3b82f6;
-      font-weight: bold;
-    }
-  }
+  .label { font-size: 26rpx; color: #666; }
+  .value { font-size: 26rpx; color: #333; &.price { color: #3b82f6; font-weight: bold; } }
 }
 
 .picker-row {
@@ -421,21 +436,9 @@ const submitOrder = async () => {
   padding: 20rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
 
-  &:last-child {
-    border-bottom: none;
-  }
-
-  .label {
-    font-size: 26rpx;
-    color: #666;
-  }
-
-  .value {
-    display: flex;
-    align-items: center;
-    color: #333;
-    font-size: 26rpx;
-  }
+  &:last-child { border-bottom: none; }
+  .label { font-size: 26rpx; color: #666; }
+  .value { display: flex; align-items: center; color: #333; font-size: 26rpx; }
 }
 
 .duration-options {
@@ -453,23 +456,12 @@ const submitOrder = async () => {
     margin-right: 20rpx;
     margin-bottom: 20rpx;
 
-    &:nth-child(3n) {
-      margin-right: 0;
-    }
-
-    .duration-text {
-      font-size: 28rpx;
-      color: #666;
-    }
-
+    &:nth-child(3n) { margin-right: 0; }
+    .duration-text { font-size: 28rpx; color: #666; }
     &.active {
       border-color: #3b82f6;
       background-color: #f0f9ff;
-
-      .duration-text {
-        color: #3b82f6;
-        font-weight: bold;
-      }
+      .duration-text { color: #3b82f6; font-weight: bold; }
     }
   }
 }
@@ -489,29 +481,36 @@ const submitOrder = async () => {
     margin-right: 20rpx;
     margin-bottom: 20rpx;
 
-    &:nth-child(3n) {
-      margin-right: 0;
-    }
-
-    .round-text {
-      font-size: 28rpx;
-      color: #666;
-    }
+    &:nth-child(3n) { margin-right: 0; }
+    .round-text { font-size: 28rpx; color: #666; }
 
     &.active {
       border-color: #3b82f6;
       background-color: #f0f9ff;
-
-      .duration-text {
-        color: #3b82f6;
-        font-weight: bold;
-      }
+      .round-text { color: #3b82f6; font-weight: bold; }
     }
+  }
+
+  /* 🔥 自定义输入框样式和选项保持一致 */
+  .custom-input-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .custom-round-input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 28rpx;
+    color: #666;
+    border: none;
+    outline: none;
+    background: transparent;
   }
 }
 
 .remark-input {
-  width: 100%;
+  width: calc(100% - 60rpx);
   min-height: 160rpx;
   padding: 20rpx;
   background-color: #f5f5f5;
@@ -528,26 +527,12 @@ const submitOrder = async () => {
   .section-left {
     display: flex;
     flex-direction: column;
-
-    .coupon-count {
-      font-size: 24rpx;
-      color: #999;
-      margin-top: 6rpx;
-    }
+    .coupon-count { font-size: 24rpx; color: #999; margin-top: 6rpx; }
   }
-
   .section-right {
     display: flex;
     align-items: center;
-
-    .coupon-text {
-      font-size: 26rpx;
-      margin-right: 10rpx;
-
-      &.placeholder {
-        color: #999;
-      }
-    }
+    .coupon-text { font-size: 26rpx; margin-right: 10rpx; &.placeholder { color: #999; } }
   }
 }
 
@@ -557,35 +542,15 @@ const submitOrder = async () => {
     justify-content: space-between;
     padding: 16rpx 0;
 
-    .label {
-      font-size: 26rpx;
-      color: #666;
-    }
-
-    .value {
-      font-size: 26rpx;
-      color: #333;
-
-      &.discount {
-        color: #ff4d4f;
-      }
-    }
+    .label { font-size: 26rpx; color: #666; }
+    .value { font-size: 26rpx; color: #333; &.discount { color: #ff4d4f; } }
 
     &.total {
       border-top: 1rpx solid #f0f0f0;
       padding-top: 20rpx;
       margin-top: 10rpx;
-
-      .label {
-        font-size: 28rpx;
-        font-weight: bold;
-      }
-
-      .value {
-        font-size: 36rpx;
-        color: #3b82f6;
-        font-weight: bold;
-      }
+      .label { font-size: 28rpx; font-weight: bold; }
+      .value { font-size: 36rpx; color: #3b82f6; font-weight: bold; }
     }
   }
 }
@@ -600,20 +565,12 @@ const submitOrder = async () => {
   justify-content: space-between;
   padding: 16rpx 30rpx;
   background-color: #fff;
-  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.05);
   z-index: 100;
 
   .price-info {
-    .total-label {
-      font-size: 26rpx;
-      color: #333;
-    }
-
-    .total-price {
-      font-size: 40rpx;
-      font-weight: bold;
-      color: #3b82f6;
-    }
+    .total-label { font-size: 26rpx; color: #333; }
+    .total-price { font-size: 40rpx; font-weight: bold; color: #3b82f6; }
   }
 
   .submit-btn {
@@ -626,13 +583,8 @@ const submitOrder = async () => {
     border: none;
     margin: 0;
 
-    &::after {
-      border: none;
-    }
-
-    &[disabled] {
-      background-color: #ccc;
-    }
+    &::after { border: none; }
+    &[disabled] { background-color: #ccc; }
   }
 }
 </style>
