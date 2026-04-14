@@ -212,7 +212,7 @@ const rejectOrder = (order) => {
     success: async (res) => {
       if (res.confirm) {
         try {
-          await rejectOrderApi(order.id, { reason: res.content || '陪玩师拒绝' })
+          await rejectOrderApi(order.id, { reason: res.content || '拒绝' })
           uni.showToast({
             title: '已拒绝',
             icon: 'success'

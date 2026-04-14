@@ -18,14 +18,12 @@ export const useAppStore = defineStore('app', {
     pageStack: [],
     // 全局配置
     config: {
-      // API基础URL
-      baseURL: 'https://api.example.com',
       // 上传文件URL
       uploadURL: 'https://api.example.com/upload',
-      // 图片CDN地址
-      cdnURL: 'https://cdn.example.com',
-      // 默认头像
-      defaultAvatar: '/static/images/default-avatar.png'
+      // 停机维护 0: 不维护 1: 维护
+      isMaintenance: 1,
+      // 主体文案维护
+      mainText: '游戏',
     },
     // 用户协议版本
     agreementVersion: '1.0.0',

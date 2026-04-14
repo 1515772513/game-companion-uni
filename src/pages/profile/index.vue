@@ -83,10 +83,10 @@
       <view class="menu-item" @tap="goToCompanionApply">
         <view class="menu-left">
           <uni-icons type="person-filled" size="22" color="#3b82f6"></uni-icons>
-          <text class="menu-label">成为陪玩师</text>
+          <text class="menu-label">成为{{ mainText }}师</text>
         </view>
         <view class="menu-right">
-          <text class="tip" v-if="!userInfo.isCompanion">申请成为陪玩师</text>
+          <text class="tip" v-if="!userInfo.isCompanion">申请成为{{ mainText }}师</text>
           <uni-icons type="right" size="16" color="#999"></uni-icons>
         </view>
       </view>
@@ -145,6 +145,15 @@ import { ref, onMounted } from 'vue'
 import { getUserInfo, logout } from '@/api/user'
 import { getOrderStats } from '@/api/order'
 import { useUserStore } from '@/store/user'
+import { useAppStore } from '@/store/app'
+import { computed } from 'vue'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const userStore = useUserStore()
 

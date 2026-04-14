@@ -11,7 +11,7 @@
 
     <!-- 陪玩师信息 -->
     <view class="companion-section">
-      <view class="section-title">陪玩师信息</view>
+      <view class="section-title">{{ mainText }}师信息</view>
       <view class="companion-info" @tap="goToCompanion">
         <image :src="orderInfo.companionAvatar || orderInfo.companion_avatar" mode="aspectFill" class="companion-avatar"></image>
         <view class="info">
@@ -87,7 +87,7 @@
         去支付
       </button>
       <button class="action-btn primary-btn" v-if="orderInfo.status === 'ongoing'" @tap="contactCompanion">
-        联系陪玩师
+        联系{{ mainText }}师
       </button>
       <button class="action-btn primary-btn" v-if="orderInfo.status === 'completed' && !orderInfo.isReviewed" @tap="reviewOrder">
         评价订单
@@ -102,6 +102,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getOrderDetail, cancelOrder as cancelOrderApi } from '@/api/order'
+import { useAppStore } from '@/store/app'
+import { computed } from 'vue'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
+
 
 const orderId = ref('')
 const orderInfo = ref({})

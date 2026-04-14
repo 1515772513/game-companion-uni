@@ -39,7 +39,7 @@
         <view class="order-card__btn order-card__btn--pay" @click.stop="handlePay">立即支付</view>
       </view>
       <view v-else-if="order.status === 'paid'" class="order-card__actions">
-        <view class="order-card__btn order-card__btn--contact" @click.stop="handleContact">联系陪玩师</view>
+        <view class="order-card__btn order-card__btn--contact" @click.stop="handleContact">联系</view>
       </view>
       <view v-else-if="order.status === 'completed'" class="order-card__actions">
         <view class="order-card__btn order-card__btn--review" @click.stop="handleReview">评价</view>

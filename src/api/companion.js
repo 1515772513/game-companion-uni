@@ -4,14 +4,6 @@
 import { get, post, put, del } from '../utils/request'
 
 /**
- * 获取首页数据
- * @returns {Promise}
- */
-export function getHomeData() {
-  return get('/home')
-}
-
-/**
  * 获取陪玩师列表
  * @param {Object} params - 查询参数
  * @param {number} params.page - 页码

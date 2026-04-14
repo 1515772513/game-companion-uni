@@ -61,7 +61,7 @@
               v-if="order.status === 'ongoing'"
               @tap.stop="contactCompanion(order)"
             >
-              联系陪玩师
+              联系{{ mainText }}师
             </button>
             <button
               class="action-btn primary-btn"
@@ -99,6 +99,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getOrderList, cancelOrder as cancelOrderApi, payOrder as payOrderApi, getOrderPendingCount } from '@/api/order'
+import { useAppStore } from '@/store/app'
+import { computed } from 'vue'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const tabs = ref([
   { label: '全部', value: 'all' },

@@ -6,7 +6,7 @@
         <uni-icons type="search" size="20" color="#999"></uni-icons>
         <input
           v-model="keyword"
-          placeholder="搜索陪玩师"
+          :placeholder="`搜索${mainText}师`"
           placeholder-class="placeholder"
           @confirm="handleSearch"
         />
@@ -176,6 +176,14 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { getCompanionList } from '@/api/companion'
 import { getDictList } from '@/api/ditc'
 import { getGameList } from '@/api/game'
+import { useAppStore } from '@/store/app'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const keyword = ref('')
 const companions = ref([])

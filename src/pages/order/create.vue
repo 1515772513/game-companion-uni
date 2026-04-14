@@ -5,7 +5,7 @@
       <image :src="companionInfo.avatar" mode="aspectFill" class="companion-avatar"></image>
       <view class="info">
         <text class="name">{{ companionInfo.nickname }}</text>
-        <text class="service">{{ selectedService?.name }}</text>
+        <text class="service">{{ selectedService?.serviceTypeName }}</text>
       </view>
       <view class="price">¥{{ selectedService?.price }}</view>
     </view>
@@ -15,16 +15,16 @@
       <view class="section-title">服务信息</view>
       <view class="info-row">
         <text class="label">服务类型</text>
-        <text class="value">{{ selectedService?.name }}</text>
+        <text class="value">{{ selectedService?.serviceTypeName }}</text>
       </view>
       <view class="info-row">
         <text class="label">服务价格</text>
-        <text class="value price">¥{{ selectedService?.price }}/小时</text>
+        <text class="value price">¥{{ selectedService?.price }}/{{ selectedService?.priceUnit }}</text>
       </view>
     </view>
 
     <!-- 预约时间 -->
-    <view class="appointment-section">
+    <view class="appointment-section" v-if="false">
       <view class="section-title">预约时间</view>
       <picker mode="date" :value="appointmentDate" @change="onDateChange">
         <view class="picker-row">
@@ -48,11 +48,11 @@
 
     <!-- 服务时长 -->
     <view class="duration-section">
-      <view class="section-title">服务时长</view>
+      <view class="section-title">服务规格</view>
       <view class="duration-options">
         <view
           class="duration-item"
-          v-for="item in durationOptions"
+          v-for="item in gameRoundOptions"
           :key="item.value"
           :class="{ active: duration === item.value }"
           @tap="selectDuration(item.value)"
@@ -131,13 +131,7 @@ const selectedCoupon = ref(null)
 const availableCoupons = ref([])
 const submitting = ref(false)
 
-const durationOptions = ref([
-  { label: '1小时', value: 1 },
-  { label: '2小时', value: 2 },
-  { label: '3小时', value: 3 },
-  { label: '5小时', value: 5 },
-  { label: '10小时', value: 10 }
-])
+const gameRoundOptions = ref([])
 
 const servicePrice = computed(() => {
   if (!selectedService.value) return 0
@@ -171,6 +165,25 @@ onMounted(async () => {
   appointmentTime.value = '10:00'
 })
 
+// 加载游戏局数列表
+// const loadGameRoundounds = async () => {
+//   if (!selectedGame.value.id) return
+  
+//   try {
+//     const res = await getDictList(`game_level_${selectedGame.value.id}`)
+//     if (res.code === 200) {
+//       levelOptions.value = [
+//         { id: '', name: '全部等级' },
+//         ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
+//       ]
+//       // 加载完数据后，默认选中第一项
+//       selectedLevel.value = levelOptions.value[0]
+//     }
+//   } catch (error) {
+//     console.error('加载等级列表失败', error)
+//   }
+// }
+
 const loadCompanionInfo = async () => {
   try {
     const res = await getCompanionDetail(companionId.value)
@@ -178,7 +191,7 @@ const loadCompanionInfo = async () => {
       companionInfo.value = res.data
     }
   } catch (error) {
-    console.error('获取陪玩师信息失败', error)
+    console.error('获取信息失败', error)
   }
 }
 

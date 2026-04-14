@@ -6,9 +6,12 @@
 
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+import { getSystemConfig } from '@/api/home'
 import { useUserStore } from '@/store/user'
+import { useAppStore } from '@/store/app'
 
 const userStore = useUserStore()
+const appStore = useAppStore()
 
 onLaunch(() => {
   console.log('App Launch')
@@ -30,6 +33,11 @@ onLaunch(() => {
       provide('$system', systems)
       provide('$lineHeight', systems.ktxStatusHeight + systems.navigationHeight)
     }
+  })
+
+  // 获取系统配置
+  getSystemConfig().then(res => {
+    appStore.setConfig(res.data)
   })
 
   if (uni.getStorageSync('userInfo')) {

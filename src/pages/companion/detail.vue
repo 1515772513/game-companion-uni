@@ -43,7 +43,10 @@
 
     <!-- 服务列表 -->
     <view class="services-section">
-      <view class="section-title">选择服务</view>
+      <view class="section-title">
+        选择服务
+        <view class="tips">（服务类型：线上）</view>
+      </view>
       <view class="service-list">
         <view
           class="service-item"
@@ -54,7 +57,7 @@
         >
           <view class="service-info">
             <text class="service-name">{{ service.serviceTypeName }}</text>
-            <text class="service-desc">{{ service.description || '专业陪玩服务' }}</text>
+            <text class="service-desc">{{ service.description || `专业${mainText}服务` }}</text>
           </view>
           <view class="service-price">
             <text class="price">¥{{ service.price }}</text>
@@ -144,6 +147,15 @@
 import { ref, onMounted } from 'vue'
 import { getCompanionDetail, getCompanionServices, getCompanionReviews } from '@/api/companion'
 import { addFavorite, removeFavorite } from '@/api/user'
+import { useAppStore } from '@/store/app'
+import { computed } from 'vue'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const companionId = ref('')
 const companionInfo = ref({})
@@ -175,7 +187,7 @@ const loadCompanionDetail = async () => {
       }
     }
   } catch (error) {
-    console.error('获取陪玩师详情失败', error)
+    console.error('获取详情失败', error)
     uni.showToast({
       title: '加载失败',
       icon: 'none'
@@ -424,6 +436,12 @@ const previewReviewImage = (index, images) => {
     margin-bottom: 24rpx;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+
+    .tips {
+      font-size: 24rpx;
+      color: #999;
+    }
 
     .more {
       font-size: 26rpx;

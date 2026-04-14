@@ -4,7 +4,7 @@
     <view class="search-bar">
       <view class="search-input" @tap="goToSearch">
         <uni-icons type="search" size="20" color="#999"></uni-icons>
-        <text class="placeholder">搜索陪玩师</text>
+        <text class="placeholder">搜索{{ mainText }}师</text>
       </view>
     </view>
 
@@ -106,10 +106,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getHomeData, getCompanionList } from '@/api/companion'
+import { ref, onMounted, computed } from 'vue'
+import { getCompanionList } from '@/api/companion'
+import { getHomeData } from '@/api/home'
 import { getDictList } from '@/api/ditc'
 import { getGameList } from '@/api/game'
+import { useAppStore } from '@/store/app'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 
 // 轮播图数据
@@ -193,7 +202,7 @@ const loadCompanions = async () => {
       hasMore.value = res.data.pagination.has_more || false
     }
   } catch (error) {
-    console.error('加载陪玩师列表失败', error)
+    console.error('加载列表失败', error)
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false

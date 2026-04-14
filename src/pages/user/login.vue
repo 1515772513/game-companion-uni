@@ -4,8 +4,8 @@
       <!-- Logo -->
       <view class="logo-section">
         <image src="/static/logo.png" mode="aspectFit" class="logo"></image>
-        <text class="app-name">木子陪玩</text>
-        <text class="app-slogan">专业游戏陪玩平台</text>
+        <text class="app-name">木子{{ mainText }}</text>
+        <text class="app-slogan">专业游戏{{ mainText }}平台</text>
       </view>
 
       <!-- 微信登录 -->
@@ -55,6 +55,15 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '@/store/user'
+import { useAppStore } from '@/store/app'
+import { computed } from 'vue'
+
+const appStore = useAppStore()
+
+// 计算属性
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const userStore = useUserStore()
 
