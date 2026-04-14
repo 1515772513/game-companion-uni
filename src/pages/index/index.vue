@@ -240,7 +240,7 @@ const goToSearch = () => {
 // 跳转详情
 const goToDetail = (id) => {
   uni.navigateTo({
-    url: `/pages/companion/detail?id=${id}`
+    url: `/pages/companion/detail?id=${id}&gameId=${filter.value.gameId}`
   })
 }
 

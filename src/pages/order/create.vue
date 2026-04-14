@@ -200,7 +200,7 @@ const loadServices = async () => {
     const res = await getCompanionServices(companionId.value)
     if (res.code === 200) {
       const services = res.data
-      selectedService.value = services.find(s => s.id === serviceId.value) || services[0]
+      selectedService.value = services.find(s => s.id == serviceId.value) || services[0]
     }
   } catch (error) {
     console.error('获取服务列表失败', error)

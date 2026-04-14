@@ -36,6 +36,21 @@
       </view>
     </view>
 
+    <!-- 游戏选择标签 -->
+    <view class="game-tags-section">
+      <scroll-view scroll-x class="game-scroll">
+        <view
+          class="game-tag"
+          :class="{ active: selectedGame.gameId === game.gameId }"
+          v-for="game in games"
+          :key="game.gameId"
+          @tap="selectGame(game)"
+        >
+          {{ game.gameName }}
+        </view>
+      </scroll-view>
+    </view>
+
     <!-- 服务标签 -->
     <view class="tags-section">
       <view class="tag" v-for="tag in companionInfo.tags" :key="tag">{{ tag }}</view>
@@ -50,7 +65,7 @@
       <view class="service-list">
         <view
           class="service-item"
-          v-for="service in services"
+          v-for="service in filteredServices"
           :key="service.id"
           :class="{ active: selectedService?.id === service.id }"
           @tap="selectService(service)"
@@ -144,15 +159,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getCompanionDetail, getCompanionServices, getCompanionReviews } from '@/api/companion'
 import { addFavorite, removeFavorite } from '@/api/user'
 import { useAppStore } from '@/store/app'
-import { computed } from 'vue'
 
 const appStore = useAppStore()
 
-// 计算属性
 const mainText = computed(() => {
   return appStore.getConfig.mainText
 })
@@ -163,6 +176,10 @@ const services = ref([])
 const reviews = ref([])
 const selectedService = ref(null)
 const loading = ref(false)
+
+// 游戏选择
+const games = ref([])
+const selectedGame = ref({})
 
 onMounted(() => {
   const pages = getCurrentPages()
@@ -180,7 +197,6 @@ const loadCompanionDetail = async () => {
   try {
     const res = await getCompanionDetail(companionId.value)
     if (res.code === 200) {
-      // 转换snake_case到camelCase用于展示
       companionInfo.value = {
         ...res.data,
         avatarUrl: res.data.avatar,
@@ -188,10 +204,7 @@ const loadCompanionDetail = async () => {
     }
   } catch (error) {
     console.error('获取详情失败', error)
-    uni.showToast({
-      title: '加载失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -202,18 +215,56 @@ const loadServices = async () => {
     const res = await getCompanionServices(companionId.value)
     if (res.code === 200) {
       services.value = res.data || []
-      if (services.value.length > 0 && !selectedService.value) {
-        selectedService.value = services.value[0]
+
+      // 提取游戏列表
+      const gameMap = {}
+      services.value.forEach(item => {
+        if (!gameMap[item.gameId]) {
+          gameMap[item.gameId] = {
+            gameId: item.gameId,
+            gameName: item.gameName
+          }
+        }
+      })
+      games.value = Object.values(gameMap)
+
+      // 处理URL中的gameId
+      const pages = getCurrentPages()
+      const currentPage = pages[pages.length - 1]
+      const options = currentPage.options
+      const urlGameId = options.gameId ? Number(options.gameId) : null
+
+      if (urlGameId && games.value.length) {
+        const target = games.value.find(g => g.gameId === urlGameId)
+        selectedGame.value = target || games.value[0]
+      } else if (games.value.length) {
+        selectedGame.value = games.value[0]
+      }
+
+      // 默认选中第一个服务
+      if (filteredServices.value.length) {
+        selectedService.value = filteredServices.value[0]
       }
     }
   } catch (error) {
-    console.error('获取服务列表失败', error)
-    uni.showToast({
-      title: '服务加载失败',
-      icon: 'none'
-    })
+    console.error('获取服务失败', error)
+    uni.showToast({ title: '服务加载失败', icon: 'none' })
   }
 }
+
+// 切换游戏
+const selectGame = (game) => {
+  selectedGame.value = game
+  if (filteredServices.value.length) {
+    selectedService.value = filteredServices.value[0]
+  }
+}
+
+// 根据选中游戏过滤服务
+const filteredServices = computed(() => {
+  if (!selectedGame.value?.gameId) return []
+  return services.value.filter(s => s.gameId === selectedGame.value.gameId)
+})
 
 const loadReviews = async () => {
   try {
@@ -222,7 +273,7 @@ const loadReviews = async () => {
       reviews.value = res.data || []
     }
   } catch (error) {
-    console.error('获取评价列表失败', error)
+    console.error('获取评价失败', error)
   }
 }
 
@@ -235,24 +286,14 @@ const toggleFavorite = async () => {
     if (companionInfo.value.isFavorite) {
       await removeFavorite({ ItemId: companionId.value })
       companionInfo.value.isFavorite = false
-      uni.showToast({
-        title: '取消收藏',
-        icon: 'success'
-      })
+      uni.showToast({ title: '取消收藏', icon: 'success' })
     } else {
       await addFavorite({ ItemId: companionId.value })
       companionInfo.value.isFavorite = true
-      uni.showToast({
-        title: '收藏成功',
-        icon: 'success'
-      })
+      uni.showToast({ title: '收藏成功', icon: 'success' })
     }
   } catch (error) {
-    console.error('收藏操作失败', error)
-    uni.showToast({
-      title: error?.message || error?.msg || '操作失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '操作失败', icon: 'none' })
   }
 }
 
@@ -264,13 +305,10 @@ const goToChat = () => {
 
 const goToCreateOrder = () => {
   if (!selectedService.value) {
-    uni.showToast({
-      title: '请先选择服务',
-      icon: 'none'
-    })
+    uni.showToast({ title: '请先选择服务', icon: 'none' })
     return
   }
-
+  console.log(`/pages/order/create?companionId=${companionId.value}&serviceId=${selectedService.value.id}`)
   uni.navigateTo({
     url: `/pages/order/create?companionId=${companionId.value}&serviceId=${selectedService.value.id}`
   })
@@ -284,14 +322,14 @@ const goToAllReviews = () => {
 
 const previewImage = (index) => {
   uni.previewImage({
-    urls: companionInfo.value.gallery,
+    urls: companionInfo.value.gallery || [],
     current: index
   })
 }
 
 const previewReviewImage = (index, images) => {
   uni.previewImage({
-    urls: images,
+    urls: images || [],
     current: index
   })
 }
@@ -378,7 +416,7 @@ const previewReviewImage = (index, images) => {
         padding: 4rpx 12rpx;
         background-color: rgba(255, 215, 0, 0.2);
         border-radius: 20rpx;
-        border: 1px solid rgba(255, 215, 0, 0.5);
+        border: 1rpx solid rgba(255, 215, 0, 0.5);
 
         text {
           font-size: 20rpx;
@@ -403,6 +441,32 @@ const previewReviewImage = (index, images) => {
           color: #FFD700;
         }
       }
+    }
+  }
+}
+
+/* 游戏标签样式 */
+.game-tags-section {
+  background: #fff;
+  padding: 20rpx 20rpx;
+  margin-bottom: 20rpx;
+
+  .game-scroll {
+    white-space: nowrap;
+  }
+
+  .game-tag {
+    display: inline-block;
+    padding: 12rpx 24rpx;
+    margin-right: 16rpx;
+    border-radius: 10rpx;
+    background: #f5f5f5;
+    font-size: 26rpx;
+    color: #666;
+
+    &.active {
+      background: #3b82f6;
+      color: #fff;
     }
   }
 }
