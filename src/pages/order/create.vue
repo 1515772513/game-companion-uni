@@ -10,6 +10,19 @@
       <view class="price">¥{{ selectedService?.price }}</view>
     </view>
 
+    <!-- 当前游戏 -->
+     <view class="game-section">
+      <view class="section-title">当前游戏</view>
+      <view class="info-row">
+        <text class="label">游戏名称</text>
+        <text class="value">{{ selectedService?.gameName }}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">段位</text>
+        <text class="value">{{ selectedService?.gameLevel }}</text>
+      </view>
+    </view>
+
     <!-- 服务信息 -->
     <view class="service-section">
       <view class="section-title">服务信息</view>
@@ -24,7 +37,7 @@
     </view>
 
     <!-- 预约时间 -->
-    <view class="appointment-section" v-if="false">
+    <!-- <view class="appointment-section" v-if="false">
       <view class="section-title">预约时间</view>
       <picker mode="date" :value="appointmentDate" @change="onDateChange">
         <view class="picker-row">
@@ -44,20 +57,35 @@
           </view>
         </view>
       </picker>
-    </view>
+    </view> -->
 
     <!-- 服务时长 -->
-    <view class="duration-section">
+    <!-- <view class="duration-section">
       <view class="section-title">服务规格</view>
       <view class="duration-options">
         <view
           class="duration-item"
-          v-for="item in gameRoundOptions"
+          v-for="item in durationOptions"
           :key="item.value"
           :class="{ active: duration === item.value }"
           @tap="selectDuration(item.value)"
         >
           <text class="duration-text">{{ item.label }}</text>
+        </view>
+      </view>
+    </view> -->
+    
+    <view class="round-section">
+      <view class="section-title">服务规格</view>
+      <view class="round-options">
+        <view
+          class="round-item"
+          v-for="item in gameRoundOptions"
+          :key="item.id"
+          :class="{ active: round === item.id }"
+          @tap="selectRound(item.id)"
+        >
+          <text class="round-text">{{ item.name }}</text>
         </view>
       </view>
     </view>
@@ -118,6 +146,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getCompanionDetail, getCompanionServices } from '@/api/companion'
 import { calculateOrderPrice, createOrder } from '@/api/order'
 import { getAvailableCoupons } from '@/api/user'
+import { getDictList } from '@/api/dict'
 
 const companionId = ref('')
 const serviceId = ref('')
@@ -125,17 +154,20 @@ const companionInfo = ref({})
 const selectedService = ref(null)
 const appointmentDate = ref('')
 const appointmentTime = ref('')
-const duration = ref(1)
+const duration = ref(null)
+const round = ref(null)
+
 const remark = ref('')
 const selectedCoupon = ref(null)
 const availableCoupons = ref([])
 const submitting = ref(false)
 
 const gameRoundOptions = ref([])
+const durationOptions = ref([])
 
 const servicePrice = computed(() => {
-  if (!selectedService.value) return 0
-  return (selectedService.value.price * duration.value).toFixed(2)
+  if (!selectedService.value || !duration.value && !round.value) return 0
+  return (selectedService.value.price * (duration.value || round.value)).toFixed(2)
 })
 
 const totalPrice = computed(() => {
@@ -166,23 +198,21 @@ onMounted(async () => {
 })
 
 // 加载游戏局数列表
-// const loadGameRoundounds = async () => {
-//   if (!selectedGame.value.id) return
-  
-//   try {
-//     const res = await getDictList(`game_level_${selectedGame.value.id}`)
-//     if (res.code === 200) {
-//       levelOptions.value = [
-//         { id: '', name: '全部等级' },
-//         ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
-//       ]
-//       // 加载完数据后，默认选中第一项
-//       selectedLevel.value = levelOptions.value[0]
-//     }
-//   } catch (error) {
-//     console.error('加载等级列表失败', error)
-//   }
-// }
+const loadGameRoundounds = async () => {
+  try {
+    const res = await getDictList(`game_round_${selectedService.value.gameId}`)
+    if (res.code === 200) {
+      gameRoundOptions.value = [
+        ...((res.data || []).map(item => ({ id: item.dictValue, name: item.dictLabel })))
+      ]
+      // 加载完数据后，默认选中第一项
+      round.value = gameRoundOptions.value[0].id
+      
+    }
+  } catch (error) {
+    console.error('加载游戏局数列表失败', error)
+  }
+}
 
 const loadCompanionInfo = async () => {
   try {
@@ -201,6 +231,8 @@ const loadServices = async () => {
     if (res.code === 200) {
       const services = res.data
       selectedService.value = services.find(s => s.id == serviceId.value) || services[0]
+
+      await loadGameRoundounds()
     }
   } catch (error) {
     console.error('获取服务列表失败', error)
@@ -233,6 +265,10 @@ const selectDuration = (value) => {
   duration.value = value
 }
 
+const selectRound = (value) => {
+  round.value = value
+}
+
 const selectCoupon = () => {
   if (availableCoupons.value.length === 0) {
     uni.showToast({
@@ -262,7 +298,7 @@ const submitOrder = async () => {
     const data = {
       companionId: companionId.value,
       serviceId: selectedService.value.id,
-      quantity: duration.value,
+      quantity: duration.value || round.value,
       appointmentTime: `${appointmentDate.value} ${appointmentTime.value}`,
       remark: remark.value
     }
@@ -309,7 +345,7 @@ const submitOrder = async () => {
   padding-bottom: 120rpx;
 }
 
-.companion-section, .service-section, .appointment-section, .duration-section, .remark-section, .coupon-section, .price-detail-section {
+.companion-section, .service-section, .appointment-section, .duration-section, .round-section, .remark-section, .coupon-section, .price-detail-section, .game-section {
   background-color: #fff;
   margin-bottom: 20rpx;
   padding: 30rpx;
@@ -422,6 +458,42 @@ const submitOrder = async () => {
     }
 
     .duration-text {
+      font-size: 28rpx;
+      color: #666;
+    }
+
+    &.active {
+      border-color: #3b82f6;
+      background-color: #f0f9ff;
+
+      .duration-text {
+        color: #3b82f6;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+.round-options{
+  display: flex;
+  flex-wrap: wrap;
+
+  .round-item {
+    width: 210rpx;
+    height: 80rpx;
+    border: 2rpx solid #e5e5e5;
+    border-radius: 12rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20rpx;
+    margin-bottom: 20rpx;
+
+    &:nth-child(3n) {
+      margin-right: 0;
+    }
+
+    .round-text {
       font-size: 28rpx;
       color: #666;
     }

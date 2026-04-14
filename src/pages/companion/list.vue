@@ -174,7 +174,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { getCompanionList } from '@/api/companion'
-import { getDictList } from '@/api/ditc'
+import { getDictList } from '@/api/dict'
 import { getGameList } from '@/api/game'
 import { useAppStore } from '@/store/app'
 
