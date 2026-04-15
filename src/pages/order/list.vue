@@ -123,12 +123,15 @@ const tabKeys = ref({
 })
 const page = ref(1)
 const pageSize = ref(10)
-const hasMore = ref(true)
+const hasMore = ref(false)
 const loading = ref(false)
 
 onShow(() => {
-  loadOrderCounts()
-  loadOrders()
+  if (appStore.token) {
+    loadOrderStatuses()
+    loadOrderCounts()
+    loadOrders()
+  }
 })
 
 onMounted(() => {

@@ -318,9 +318,17 @@ const goToCompanionApply = () => {
       url: '/packages/companion/index'
     })
   } else {
-    uni.navigateTo({
-      url: '/pages/profile/companion-apply'
-    })
+    
+    if (!userStore.token) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      setTimeout(() => {
+        uni.navigateTo({ url: '/pages/user/login' })
+      }, 1500)
+    } else {
+      uni.navigateTo({
+        url: '/pages/profile/companion-apply'
+      })
+    }
   }
 }
 

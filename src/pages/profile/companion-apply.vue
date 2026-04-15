@@ -352,15 +352,6 @@ const submitApply = async () => {
 onMounted(() => {
   loadGameList()
 })
-
-onShow(() => {
-  if (!userStore.token) {
-    uni.showToast({ title: '请先登录', icon: 'none' })
-    setTimeout(() => {
-      uni.navigateTo({ url: '/pages/user/login' })
-    }, 1500)
-  }
-})
 </script>
 
 <style lang="scss" scoped>
