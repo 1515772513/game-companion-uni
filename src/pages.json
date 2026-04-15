@@ -69,6 +69,12 @@
       }
     },
     {
+      "path": "pages/profile/companion-apply",
+      "style": {
+        "navigationBarTitleText": "陪玩师申请"
+      }
+    },
+    {
       "path": "pages/message/list",
       "style": {
         "navigationBarTitleText": "消息"

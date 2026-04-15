@@ -41,7 +41,7 @@
     </view>
 
     <!-- 订单管理 -->
-    <view class="order-section">
+    <view class="order-section" v-if="false">
       <view class="section-header" @tap="goToOrders">
         <text class="section-title">我的订单</text>
         <view class="more">
@@ -73,13 +73,13 @@
 
     <!-- 功能菜单 -->
     <view class="menu-section">
-      <view class="menu-item" @tap="goToWallet">
+      <!-- <view class="menu-item" @tap="goToWallet">
         <view class="menu-left">
           <uni-icons type="wallet-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">我的钱包</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
-      </view>
+      </view> -->
       <view class="menu-item" @tap="goToCompanionApply">
         <view class="menu-left">
           <uni-icons type="person-filled" size="22" color="#3b82f6"></uni-icons>
@@ -90,20 +90,52 @@
           <uni-icons type="right" size="16" color="#999"></uni-icons>
         </view>
       </view>
-      <view class="menu-item" @tap="goToAddress">
+      <!-- <view class="menu-item" @tap="goToAddress">
         <view class="menu-left">
           <uni-icons type="location" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">收货地址</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
+      </view> -->
+
+      <!-- 在线状态三档开关 -->
+      <view class="menu-item" v-if="userInfo.isCompanion">
+        <view class="menu-left">
+          <uni-icons type="wifi-filled" size="22" color="#3b82f6"></uni-icons>
+          <text class="menu-label">{{ mainText }}在线状态</text>
+        </view>
+        <view class="status-switch">
+          <view 
+            class="switch-item" 
+            :class="{ active: onlineStatus === 'online' }"
+            @tap="changeStatus('online')"
+          >
+            在线
+          </view>
+          <view 
+            class="switch-item" 
+            :class="{ active: onlineStatus === 'busy' }"
+            @tap="changeStatus('busy')"
+          >
+            接单中
+          </view>
+          <view 
+            class="switch-item" 
+            :class="{ active: onlineStatus === 'offline' }"
+            @tap="changeStatus('offline')"
+          >
+            离线
+          </view>
+        </view>
       </view>
-      <view class="menu-item" @tap="goToSettings">
+      
+      <!-- <view class="menu-item" @tap="goToSettings">
         <view class="menu-left">
           <uni-icons type="gear-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">设置</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
-      </view>
+      </view> -->
     </view>
 
     <!-- 其他功能 -->
@@ -115,17 +147,17 @@
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
       </view>
-      <view class="menu-item" @tap="goToAbout">
+      <!-- <view class="menu-item" @tap="goToAbout">
         <view class="menu-left">
           <uni-icons type="info-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">关于我们</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
-      </view>
+      </view> -->
       <!-- <view class="menu-item" @tap="contactService"> -->
       <view class="menu-item">
-        <view class="menu-left">
-          <uni-icons type="phone-filled" size="22" color="#3b82f6"></uni-icons>
+        <view class="menu-left width-100">
+          <uni-icons type="weixin" size="22" color="#3b82f6"></uni-icons>
           <!-- <text class="menu-label">联系客服</text> -->
           <button class="contact-btn" open-type="contact">联系客服</button>
         </view>
@@ -142,7 +174,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserInfo, logout } from '@/api/user'
+import { getUserInfo, logout, updateCompanionStatus } from '@/api/user'
 import { getOrderStats } from '@/api/order'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
@@ -171,17 +203,50 @@ const orderStats = ref({
   refund: 0
 })
 
-// onMounted(() => {
-//   loadUserInfo()
-//   loadOrderStats()
-// })
+// 在线状态
+const onlineStatus = ref('online') // online / busy / offline
 
 onShow(() => {
   if (userStore.token) {
     loadUserInfo()
     loadOrderStats()
+    // 加载当前在线状态
+    loadCompanionStatus()
   }
 })
+
+// 🔥 加载陪玩师状态
+const loadCompanionStatus = async () => {
+  try {
+    // 从用户信息中读取状态，或单独接口获取
+    onlineStatus.value = userInfo.value.companionStatus || 'online'
+  } catch (error) {
+    console.error('加载状态失败', error)
+  }
+}
+
+// 🔥 切换状态
+const changeStatus = async (status) => {
+  if (onlineStatus.value === status) return
+  onlineStatus.value = status
+  
+  try {
+    // 调用接口更新状态
+    await updateCompanionStatus({ status })
+    uni.showToast({
+      title: `状态已更新为${status === 'online' ? '在线' : status === 'busy' ? '接单中' : '离线'}`,
+      icon: 'success'
+    })
+  } catch (error) {
+    console.error('更新状态失败', error)
+    // 回滚状态
+    onlineStatus.value = status === 'online' ? 'online' : status === 'busy' ? 'busy' : 'offline'
+    uni.showToast({
+      title: '更新失败',
+      icon: 'none'
+    })
+  }
+}
 
 const loadUserInfo = async () => {
   try {
@@ -199,6 +264,8 @@ const loadUserInfo = async () => {
         couponCount: data.couponCount || 0,
         balance: data.balance || 0
       }
+      // 同步状态
+      onlineStatus.value = data.companionStatus || 'online'
     }
   } catch (error) {
     console.error('获取用户信息失败', error)
@@ -500,10 +567,31 @@ const goToLogin = () => {
       display: flex;
       align-items: center;
 
+      &.width-100 {
+        width: 100%;
+        
+        .contact-btn {
+          text-align: left;
+        }
+      }
+
       .menu-label {
         margin-left: 20rpx;
         font-size: 28rpx;
         color: #333;
+      }
+
+      .contact-btn {
+        margin-left: 20rpx;
+        font-size: 28rpx;
+        color: #333;
+        padding: 0;
+        background-color: transparent;
+        width: 100%;
+
+        &::after {
+          border: none;
+        }
       }
     }
 
@@ -515,6 +603,32 @@ const goToLogin = () => {
         font-size: 24rpx;
         color: #999;
         margin-right: 10rpx;
+      }
+    }
+
+    // 状态开关样式
+    .status-switch {
+      display: flex;
+      background-color: #f5f5f5;
+      border-radius: 30rpx;
+      padding: 4rpx;
+      height: 60rpx;
+      align-items: center;
+
+      .switch-item {
+        padding: 0 20rpx;
+        height: 52rpx;
+        line-height: 52rpx;
+        border-radius: 26rpx;
+        font-size: 24rpx;
+        color: #999;
+        transition: all 0.3s;
+
+        &.active {
+          background-color: #3b82f6;
+          color: #fff;
+          font-weight: bold;
+        }
       }
     }
   }

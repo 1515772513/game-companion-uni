@@ -415,3 +415,13 @@ export function getAgreement(type) {
 export function smsLogin(data) {
   return post('/auth/sms-login', data)
 }
+
+/**
+ * 更新陪玩师状态
+ * @param {Object} data - 状态数据
+ * @param {string} data.status - 状态: online, busy, offline
+ * @returns {Promise}
+ */
+export function updateCompanionStatus(data) {
+  return put('/user/companion/status', data)
+}
