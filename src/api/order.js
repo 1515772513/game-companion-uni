@@ -19,11 +19,11 @@ export function createOrder(data) {
 
 /**
  * 获取订单详情
- * @param {string} orderId - 订单ID
+ * @param {string} orderNo - 订单编号
  * @returns {Promise}
  */
-export function getOrderDetail(orderId) {
-  return get(`/order/detail/${orderId}`)
+export function getOrderDetail(orderNo) {
+  return get(`/orders/detail/${orderNo}`)
 }
 
 /**
@@ -35,7 +35,7 @@ export function getOrderDetail(orderId) {
  * @returns {Promise}
  */
 export function getOrderList(params) {
-  return get('/order/list', params)
+  return get('/orders/getList', params)
 }
 
 /**
@@ -46,7 +46,7 @@ export function getOrderList(params) {
  * @returns {Promise}
  */
 export function cancelOrder(orderId, data) {
-  return post(`/order/${orderId}/cancel`, data)
+  return post(`/orders/${orderId}/cancel`, data)
 }
 
 /**
@@ -218,14 +218,6 @@ export function getOrderTimeline(orderId) {
  */
 export function getOrderStats() {
   return get('/orders/order-status')
-}
-
-/**
- * 获取待处理订单数量
- * @returns {Promise}
- */
-export function getOrderPendingCount() {
-  return get('/order/pending/count')
 }
 
 /**

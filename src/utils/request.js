@@ -110,7 +110,8 @@ function request(options) {
 
 // 处理业务错误
 function handleBusinessError(data) {
-  const message = data.message || data.msg || '操作失败'
+  console.error('业务错误:', data)
+  const message = data.error || data.message || '操作失败'
 
   // 根据错误码处理
   switch (data.code) {
@@ -246,7 +247,7 @@ export function uploadFile(filePath, options = {}) {
           if (data.code === 200 || data.success === true) {
             resolve(data)
           } else {
-            showToast(data.message || '上传失败')
+            showToast(data.error || data.message || '上传失败')
             reject(data)
           }
         } else {

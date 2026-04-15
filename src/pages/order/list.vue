@@ -10,7 +10,7 @@
         @tap="switchTab(tab.value)"
       >
         <text class="tab-text">{{ tab.label }}</text>
-        <view class="tab-badge" v-if="orderCounts[tab.value] > 0">{{ orderCounts[tab.value] }}</view>
+        <view class="tab-badge" v-if="orderCounts[tabKeys[tab.value]] > 0">{{ orderCounts[tabKeys[tab.value]] }}</view>
       </view>
     </view>
 
@@ -19,49 +19,48 @@
       <view class="order-item" v-for="order in orders" :key="order.id" @tap="goToDetail(order.id)">
         <view class="order-header">
           <view class="order-no">订单号：{{ order.orderNo }}</view>
-          <view class="order-status" :class="`status-${order.status}`">{{ getStatusText(order.status) }}</view>
+          <view class="order-status" :class="`status-${order.status}`">{{ order.statusText }}</view>
         </view>
 
         <view class="order-content">
-          <image :src="order.companionAvatar || order.companion_avatar" mode="aspectFill" class="companion-avatar"></image>
+          <image :src="order.companion.avatarUrl" mode="aspectFill" class="companion-avatar"></image>
           <view class="order-info">
-            <text class="companion-name">{{ order.companionName || order.companion_name }}</text>
-            <text class="service-name">{{ order.serviceName || order.service_name }}</text>
+            <text class="companion-name">{{ order.companion.nickname || order.companion.realName }}</text>
+            <text class="service-name">{{ order.serviceTypeName }}</text>
             <view class="order-time">
-              <text>预约时间：{{ order.appointmentTime || order.appointment_time }}</text>
+              <text>创建时间：{{ order.createdAt }}</text>
             </view>
           </view>
           <view class="order-price">
-            <text class="price">¥{{ order.price }}</text>
+            <text class="price">¥{{ order.totalAmount }}</text>
           </view>
         </view>
 
         <view class="order-footer">
-          <view class="order-time-remaining" v-if="order.status === 'pending'">
-            <uni-icons type="clock" size="14" color="#ff4d4f"></uni-icons>
-            <text>剩余 {{ order.remainingTime }} 自动取消</text>
+          <view class="order-time-remaining">
+            <!-- <text><uni-icons type="clock" size="14" color="#ff4d4f"></uni-icons>剩余 {{ order.remainingTime }} 自动取消</text> -->
+            <text v-if="order.isExpired && order.status == '0'">已失效</text>
           </view>
           <view class="action-btns">
             <button
               class="action-btn cancel-btn"
-              v-if="order.status === 'pending'"
+              v-if="order.status == '0' && !order.isExpired"
               @tap.stop="cancelOrder(order)"
             >
               取消订单
             </button>
-            <button
+            <!-- <button
               class="action-btn primary-btn"
-              v-if="order.status === 'pending'"
+              v-if="order.status == '0' && !order.isExpired"
               @tap.stop="payOrder(order)"
             >
               去支付
-            </button>
+            </button> -->
             <button
+              open-type="contact"
               class="action-btn primary-btn"
-              v-if="order.status === 'ongoing'"
-              @tap.stop="contactCompanion(order)"
             >
-              联系{{ mainText }}师
+              联系客服
             </button>
             <button
               class="action-btn primary-btn"
@@ -91,16 +90,17 @@
     </view>
     <view class="empty" v-else>
       <image src="/static/empty-order.png" mode="aspectFit" class="empty-image"></image>
-      <text class="empty-text">暂无订单</text>
+      <text class="empty-text">暂无订单数据</text>
     </view>
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getOrderList, cancelOrder as cancelOrderApi, payOrder as payOrderApi, getOrderPendingCount } from '@/api/order'
+import { getOrderList, cancelOrder as cancelOrderApi, payOrder as payOrderApi, getOrderStats } from '@/api/order'
 import { useAppStore } from '@/store/app'
 import { computed } from 'vue'
+import { getDictList } from '@/api/dict'
 
 const appStore = useAppStore()
 
@@ -109,30 +109,52 @@ const mainText = computed(() => {
   return appStore.getConfig.mainText
 })
 
-const tabs = ref([
-  { label: '全部', value: 'all' },
-  { label: '待支付', value: 'pending' },
-  { label: '进行中', value: 'ongoing' },
-  { label: '已完成', value: 'completed' },
-  { label: '已取消', value: 'cancelled' }
-])
+const tabs = ref([])
 
-const currentTab = ref('all')
+const currentTab = ref('')
 const orders = ref([])
 const orderCounts = ref({})
+const tabKeys = ref({
+  '': 'all',
+  '0': 'pendingPayment',
+  '1': '',
+  '2': '',
+  '3': '',
+})
 const page = ref(1)
 const pageSize = ref(10)
 const hasMore = ref(true)
 const loading = ref(false)
 
-onMounted(() => {
+onShow(() => {
   loadOrderCounts()
   loadOrders()
 })
 
+onMounted(() => {
+  loadOrderStatuses()
+})
+
+
+
+// 加载订单状态列表
+const loadOrderStatuses = async () => {
+  try {
+    const res = await getDictList('order_status')
+    if (res.code === 200) {
+      tabs.value = [
+        { label: '全部', value: '' },
+        ...((res.data || []).filter(item => (item.dictValue != '3' && item.dictValue != '6')).map(item => ({ value: item.dictValue, label: item.dictLabel })))
+      ]
+    }
+  } catch (error) {
+    console.error('加载订单状态列表失败', error)
+  }
+}
+
 const loadOrderCounts = async () => {
   try {
-    const res = await getOrderPendingCount()
+    const res = await getOrderStats()
     if (res.code === 200) {
       orderCounts.value = res.data
     }
@@ -156,7 +178,7 @@ const loadOrders = async () => {
     }
 
     const res = await getOrderList(params)
-    const list = res.data.list || []
+    const list = res.data.items || []
     // 转换字段名从snake_case到camelCase
     const formattedList = list.map(item => ({
       ...item,
@@ -171,7 +193,7 @@ const loadOrders = async () => {
     } else {
       orders.value = [...orders.value, ...formattedList]
     }
-    hasMore.value = res.data.hasMore || false
+    hasMore.value = res.data.pagination.hasMore || false
   } catch (error) {
     console.error('获取订单列表失败', error)
     uni.showToast({
@@ -189,19 +211,6 @@ const switchTab = (tab) => {
   loadOrders()
 }
 
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: '待支付',
-    paid: '已支付',
-    ongoing: '进行中',
-    completed: '已完成',
-    cancelled: '已取消',
-    refunding: '退款中',
-    refunded: '已退款'
-  }
-  return statusMap[status] || '未知状态'
-}
-
 const goToDetail = (orderId) => {
   uni.navigateTo({
     url: `/pages/order/detail?id=${orderId}`
@@ -215,18 +224,24 @@ const cancelOrder = (order) => {
     success: async (res) => {
       if (res.confirm) {
         try {
-          await cancelOrderApi(order.id, { reason: '用户主动取消' })
-          uni.showToast({
-            title: '订单已取消',
-            icon: 'success'
-          })
+          await cancelOrderApi(order.id, { CancelReason: '用户主动取消' })
+          setTimeout(() => {
+            uni.hideToast()
+            uni.showToast({
+              title: '订单已取消',
+              icon: 'success',
+              duration: 3000
+            })
+          }, 500)
           page.value = 1
           loadOrders()
           loadOrderCounts()
         } catch (error) {
           console.error('取消订单失败', error)
+          loadOrders()
+          loadOrderCounts()
           uni.showToast({
-            title: '取消失败',
+            title: error.error || error.message || '取消失败',
             icon: 'none'
           })
         }
@@ -303,18 +318,18 @@ onPullDownRefresh(() => {
 
     .tab-badge {
       position: absolute;
-      top: 10rpx;
-      right: 30rpx;
-      min-width: 32rpx;
+      top: 8rpx;
+      right: 16rpx;
+      width: 32rpx;
       height: 32rpx;
       background-color: #ff4d4f;
       color: #fff;
       font-size: 20rpx;
-      border-radius: 16rpx;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 8rpx;
+      padding: 2px;
     }
 
     &.active {
@@ -439,6 +454,8 @@ onPullDownRefresh(() => {
     .order-footer {
       padding-top: 20rpx;
       border-top: 1rpx solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
 
       .order-time-remaining {
         display: flex;

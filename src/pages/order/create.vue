@@ -350,14 +350,14 @@ const submitOrder = async () => {
     if (res.code === 200) {
       uni.showToast({ title: '下单成功', icon: 'success' })
       setTimeout(() => {
-        uni.redirectTo({ url: `/pages/order/payment?id=${res.data.orderId}` })
+        uni.redirectTo({ url: `/pages/order/success?orderNo=${res.data.orderNo}` })
       }, 1500)
     } else {
       uni.showToast({ title: res.message || '下单失败', icon: 'none' })
     }
   } catch (error) {
     console.error('创建订单失败', error)
-    uni.showToast({ title: '下单失败，请重试', icon: 'none' })
+    uni.showToast({ title: error.message || '下单失败，请重试', icon: 'none', duration: 3000 })
   } finally {
     submitting.value = false
   }
