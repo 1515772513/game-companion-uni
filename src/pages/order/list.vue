@@ -16,7 +16,7 @@
 
     <!-- 订单列表 -->
     <view class="order-list">
-      <view class="order-item" v-for="order in orders" :key="order.id" @tap="goToDetail(order.id)">
+      <view class="order-item" v-for="order in orders" :key="order.id" @tap="goToDetail(order.id, order.orderNo)">
         <view class="order-header">
           <view class="order-no">订单号：{{ order.orderNo }}</view>
           <view class="order-status" :class="`status-${order.status}`">{{ order.statusText }}</view>
@@ -208,12 +208,19 @@ const loadOrders = async () => {
 const switchTab = (tab) => {
   currentTab.value = tab
   page.value = 1
+
+  // 👉 切换 tab 自动回到顶部
+  uni.pageScrollTo({
+    scrollTop: 0,
+    duration: 0
+  })
+
   loadOrders()
 }
 
-const goToDetail = (orderId) => {
+const goToDetail = (orderId, orderNo) => {
   uni.navigateTo({
-    url: `/pages/order/detail?id=${orderId}`
+    url: `/pages/order/detail?id=${orderId}&orderNo=${orderNo}`
   })
 }
 

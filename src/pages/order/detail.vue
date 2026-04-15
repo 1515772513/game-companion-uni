@@ -5,20 +5,30 @@
       <view class="status-icon" :class="`status-${orderInfo.status}`">
         <uni-icons :type="getStatusIcon(orderInfo.status)" size="60" color="#fff"></uni-icons>
       </view>
-      <view class="status-text">{{ getStatusText(orderInfo.status) }}</view>
-      <view class="status-desc" v-if="orderInfo.status === 'pending'">请在30分钟内完成支付</view>
+      <view class="status-text">{{ orderInfo.statusText }}</view>
+      <view class="status-desc" v-if="orderInfo.status == '0' && !orderInfo.isExpired">请在15分钟内完成支付</view>
+      <view class="status-desc" v-else-if="orderInfo.status == '0' && orderInfo.isExpired">订单已失效</view>
     </view>
 
     <!-- 陪玩师信息 -->
     <view class="companion-section">
       <view class="section-title">{{ mainText }}师信息</view>
       <view class="companion-info" @tap="goToCompanion">
-        <image :src="orderInfo.companionAvatar || orderInfo.companion_avatar" mode="aspectFill" class="companion-avatar"></image>
+        <image :src="orderInfo.companion.avatarUrl || orderInfo.companion_avatar" mode="aspectFill" class="companion-avatar"></image>
         <view class="info">
-          <text class="name">{{ orderInfo.companionName || orderInfo.companion_name }}</text>
-          <text class="service">{{ orderInfo.serviceName || orderInfo.service_name }}</text>
+          <text class="name">{{ orderInfo.companion.nickname }}</text>
+          <text class="service">{{ orderInfo.serviceTypeName }}</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
+      </view>
+    </view>
+
+    <!-- 游戏信息 -->
+    <view class="price-section">
+      <view class="section-title">游戏信息</view>
+      <view class="info-row">
+        <text class="label">游戏名称</text>
+        <text class="value">{{ orderInfo.game.name }}</text>
       </view>
     </view>
 
@@ -27,20 +37,20 @@
       <view class="section-title">订单信息</view>
       <view class="info-row">
         <text class="label">订单编号</text>
-        <text class="value">{{ orderInfo.orderNo || orderInfo.order_no }}</text>
+        <text class="value">{{ orderInfo.orderNo }}</text>
       </view>
       <view class="info-row">
         <text class="label">下单时间</text>
-        <text class="value">{{ orderInfo.createTime || orderInfo.created_at }}</text>
+        <text class="value">{{ orderInfo.createdAt }}</text>
       </view>
-      <view class="info-row">
+      <!-- <view class="info-row">
         <text class="label">预约时间</text>
         <text class="value">{{ orderInfo.appointmentTime || orderInfo.appointment_time }}</text>
-      </view>
-      <view class="info-row">
+      </view> -->
+      <!-- <view class="info-row">
         <text class="label">服务时长</text>
         <text class="value">{{ orderInfo.duration }}小时</text>
-      </view>
+      </view> -->
       <view class="info-row" v-if="orderInfo.remark">
         <text class="label">备注</text>
         <text class="value">{{ orderInfo.remark }}</text>
@@ -52,26 +62,34 @@
       <view class="section-title">价格明细</view>
       <view class="price-row">
         <text class="label">服务费用</text>
-        <text class="value">¥{{ orderInfo.servicePrice || orderInfo.service_price }}</text>
+        <text class="value">¥{{ orderInfo.totalAmount }}</text>
       </view>
-      <view class="price-row" v-if="(orderInfo.couponDiscount || orderInfo.coupon_discount) > 0">
+      <view class="price-row" v-if="(orderInfo.unitPrice) > 0">
+        <text class="label">单价</text>
+        <text class="value">¥{{ orderInfo.unitPrice }}</text>
+      </view>
+      <view class="price-row" v-if="(orderInfo.serviceCount) > 0">
+        <text class="label">数量</text>
+        <text class="value">{{ orderInfo.serviceCount }}</text>
+      </view>
+      <view class="price-row" v-if="(orderInfo.discountAmount) > 0">
         <text class="label">优惠券</text>
-        <text class="value discount">-¥{{ orderInfo.couponDiscount || orderInfo.coupon_discount }}</text>
+        <text class="value discount">-¥{{ orderInfo.discountAmount }}</text>
       </view>
       <view class="price-row total">
         <text class="label">实付金额</text>
-        <text class="value">¥{{ orderInfo.price }}</text>
+        <text class="value">¥{{ orderInfo.finalAmount }}</text>
       </view>
     </view>
 
     <!-- 订单进度 -->
-    <view class="timeline-section" v-if="orderInfo.timeline?.length">
+    <view class="timeline-section" v-if="orderInfo.timeline?.length && false">
       <view class="section-title">订单进度</view>
       <view class="timeline">
         <view class="timeline-item" v-for="(item, index) in orderInfo.timeline" :key="index">
           <view class="timeline-dot"></view>
           <view class="timeline-content">
-            <text class="timeline-title">{{ item.title }}</text>
+            <text class="timeline-title">{{ item.description }}</text>
             <text class="timeline-time">{{ item.time }}</text>
           </view>
         </view>
@@ -79,7 +97,7 @@
     </view>
 
     <!-- 底部操作栏 -->
-    <view class="bottom-bar" v-if="orderInfo.status !== 'cancelled'">
+    <view class="bottom-bar" v-if="orderInfo.status !== 'cancelled' && false">
       <button class="action-btn cancel-btn" v-if="orderInfo.status === 'pending'" @tap="cancelOrder">
         取消订单
       </button>
@@ -114,6 +132,7 @@ const mainText = computed(() => {
 
 
 const orderId = ref('')
+const orderNo = ref('')
 const orderInfo = ref({})
 
 onMounted(() => {
@@ -121,12 +140,13 @@ onMounted(() => {
   const currentPage = pages[pages.length - 1]
   const options = currentPage.options
   orderId.value = options.id
+  orderNo.value = options.orderNo
   loadOrderDetail()
 })
 
 const loadOrderDetail = async () => {
   try {
-    const res = await getOrderDetail(orderId.value)
+    const res = await getOrderDetail(orderNo.value)
     if (res.code === 200) {
       // 转换字段名
       orderInfo.value = {
@@ -151,29 +171,18 @@ const loadOrderDetail = async () => {
 
 const getStatusIcon = (status) => {
   const iconMap = {
-    pending: 'clock',
-    paid: 'checkmarkempty',
-    ongoing: 'loop',
-    completed: 'checkbox-filled',
-    cancelled: 'closeempty'
+    0: 'clock',
+    1: 'checkmarkempty',
+    2: 'loop',
+    3: 'checkbox-filled',
+    6: 'closeempty'
   }
   return iconMap[status] || 'info'
 }
 
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: '待支付',
-    paid: '已支付',
-    ongoing: '进行中',
-    completed: '已完成',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || '未知状态'
-}
-
 const goToCompanion = () => {
   uni.navigateTo({
-    url: `/pages/companion/detail?id=${orderInfo.value.companionId}`
+    url: `/pages/companion/detail?id=${orderInfo.value.companion.id}`
   })
 }
 
