@@ -253,7 +253,8 @@
             class="game-item"
             v-for="(game, index) in filteredGameOptions"
             :key="game.id || index"
-            @tap="selectGame(game)"
+            @tap="!isGameDisabled(game.id, idx) && selectGame(game)"
+            :class="{ disabled: isGameDisabled(game.id, idx) }"
           >
             <text :class="{ active: currentSkillGameId === game.id }">{{ game.name }}</text>
           </view>
@@ -346,6 +347,19 @@ const gameSearchKeyword = ref('')
 const currentSkillIndex = ref(0)
 const currentSkillGameId = ref('')
 
+// 已选中的所有游戏ID（去重用）
+const selectedGameIds = computed(() => {
+  return gameSkillList.value
+    .map(item => item.gameId)
+    .filter(id => id && id !== '')
+})
+
+// 判断游戏是否禁用
+const isGameDisabled = (gameId, idx) => {
+  if (!gameId) return false
+  return selectedGameIds.value.includes(gameId)
+}
+
 // 【新增：多游戏技能】
 const gameSkillList = ref([
   {
@@ -385,6 +399,9 @@ const removeGameSkill = (idx) => {
 
 const openGameSelector = (idx) => {
   currentSkillIndex.value = idx
+  const skill = gameSkillList.value[idx]
+  currentSkillGameId.value = skill.gameId || ''
+  filterGames()
   gamePopup.value.open()
 }
 
@@ -919,5 +936,11 @@ async function loadGameList() {
   &::after {
     border: none;
   }
+}
+
+// 已选游戏禁用样式
+.game-item.disabled {
+  color: #ccc !important;
+  pointer-events: none;
 }
 </style>
