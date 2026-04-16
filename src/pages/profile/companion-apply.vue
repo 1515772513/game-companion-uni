@@ -91,11 +91,26 @@
           ></textarea>
         </view>
 
-        <!-- 改造：预设可选标签 + 自定义输入 -->
+        <!-- 【新增：多张背景轮播图】 -->
+        <view class="form-item">
+          <view class="label">背景轮播图</view>
+          <view class="upload-group" style="flex-wrap: wrap;">
+            <view class="upload-item" v-for="(img, idx) in backgroundImages" :key="idx" @tap="removeBackgroundImage(idx)">
+              <image :src="img.url" mode="aspectFill" class="upload-img"></image>
+            </view>
+            <view class="upload-item" @tap="uploadBackgroundImage">
+              <view class="upload-placeholder">
+                <uni-icons type="plus" size="30" color="#999"></uni-icons>
+              </view>
+            </view>
+          </view>
+          <text class="tip">可上传多张，点击删除</text>
+        </view>
+
+        <!-- 擅长标签 -->
         <view class="form-item">
           <view class="label">擅长标签</view>
           
-          <!-- 预设标签区 -->
           <view class="preset-tags">
             <view 
               class="preset-tag"
@@ -108,7 +123,6 @@
             </view>
           </view>
           
-          <!-- 已选标签 + 自定义输入 -->
           <view class="tags-input">
             <view 
               class="tag-item" 
@@ -119,10 +133,12 @@
               <text>{{ tag }}</text>
               <uni-icons type="clear" size="14" color="#fff"></uni-icons>
             </view>
+            <!-- 【新增：禁止输入逗号】 -->
             <input 
               v-model="tagInput" 
               class="tag-input" 
               placeholder="输入自定义标签，按回车添加"
+              @input="tagInput = tagInput.replace(/,/g, '')"
               @confirm="addCustomTag"
               @blur="addCustomTag"
             />
@@ -131,65 +147,67 @@
         </view>
       </view>
 
-      <!-- 游戏技能 -->
+      <!-- 【改造：多游戏技能】 -->
       <view class="form-section">
         <view class="section-title">游戏技能</view>
-        
-        <!-- 游戏选择 - 底部弹窗选择器 -->
-        <view class="form-item">
-          <view class="label">选择游戏 <text class="required">*</text></view>
-          <view class="picker" @tap="openGameSelector">
-            <text>{{ selectedGame.name || '请选择游戏' }}</text>
-            <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+
+        <view class="game-skill-group" v-for="(skill, idx) in gameSkillList" :key="idx">
+          <view class="skill-header">
+            <text>游戏 {{ idx + 1 }}</text>
+            <text class="del-btn" @tap="removeGameSkill(idx)">删除</text>
+          </view>
+
+          <view class="form-item">
+            <view class="label">选择游戏 <text class="required">*</text></view>
+            <view class="picker" @tap="openGameSelector(idx)">
+              <text>{{ skill.gameName || '请选择游戏' }}</text>
+              <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+            </view>
+          </view>
+
+          <view class="form-item">
+            <view class="label">游戏段位 <text class="required">*</text></view>
+            <picker
+              :value="skill.levelIndex"
+              :range="skill.levelOptions"
+              range-key="name"
+              @change="onSkillLevelChange(idx, $event)"
+              :disabled="!skill.gameId"
+            >
+              <view class="picker" :class="{ disabled: !skill.gameId }">
+                <view>{{ skill.levelName || '请选择段位' }}</view>
+                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+              </view>
+            </picker>
+          </view>
+
+          <view class="form-item">
+            <view class="label">服务类型 <text class="required">*</text></view>
+            <picker
+              :value="skill.typeIndex"
+              :range="typeOptions"
+              range-key="name"
+              @change="onSkillTypeChange(idx, $event)"
+            >
+              <view class="picker">
+                <view>{{ skill.typeName || '请选择服务类型' }}</view>
+                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+              </view>
+            </picker>
+          </view>
+
+          <view class="form-item">
+            <view class="label">单局价格(元) <text class="required">*</text></view>
+            <input 
+              v-model="skill.price" 
+              class="input" 
+              placeholder="请输入单局价格"
+              type="number"
+            />
           </view>
         </view>
 
-        <!-- 游戏段位 - 联动Picker -->
-        <view class="form-item">
-          <view class="label">游戏段位 <text class="required">*</text></view>
-          <picker
-            :value="levelIndex"
-            :range="levelOptions"
-            range-key="name"
-            @change="onLevelChange"
-            :disabled="!selectedGame.id"
-          >
-            <view class="picker" :class="{ disabled: !selectedGame.id }">
-              <view>{{ selectedLevel.name || '请选择段位' }}</view>
-              <view>
-                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
-              </view>
-            </view>
-          </picker>
-        </view>
-
-        <!-- 服务类型 - 统一为字典接口模式 -->
-        <view class="form-item">
-          <view class="label">服务类型 <text class="required">*</text></view>
-          <picker
-            :value="typeIndex"
-            :range="typeOptions"
-            range-key="name"
-            @change="onTypeChange"
-          >
-            <view class="picker">
-              <view>{{ selectedType.name || '请选择服务类型' }}</view>
-              <view>
-                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
-              </view>
-            </view>
-          </picker>
-        </view>
-
-        <view class="form-item">
-          <view class="label">单局价格(元) <text class="required">*</text></view>
-          <input 
-            v-model="formData.price" 
-            class="input" 
-            placeholder="请输入单局价格"
-            type="number"
-          />
-        </view>
+        <button class="add-game-btn" @tap="addGameSkill">+ 添加新游戏</button>
       </view>
 
       <!-- 提交按钮 -->
@@ -213,7 +231,6 @@
           <uni-icons type="close" size="24" color="#666" @tap="closeGameSelector"></uni-icons>
         </view>
         
-        <!-- 游戏搜索框 -->
         <view class="game-search-input">
           <uni-icons type="search" size="20" color="#999"></uni-icons>
           <input
@@ -231,7 +248,6 @@
           ></uni-icons>
         </view>
         
-        <!-- 游戏列表 -->
         <view class="game-list">
           <view 
             class="game-item"
@@ -239,7 +255,7 @@
             :key="game.id || index"
             @tap="selectGame(game)"
           >
-            <text :class="{ active: selectedGame.id === game.id }">{{ game.name }}</text>
+            <text :class="{ active: currentSkillGameId === game.id }">{{ game.name }}</text>
           </view>
           
           <view class="empty" v-if="filteredGameOptions.length === 0">
@@ -277,22 +293,14 @@ const formData = reactive({
   idCardBack: '',
   nickname: userStore.nickname,
   bio: '',
-  tags: [],
-  games: [],
-  gameRank: '',
-  serviceType: '',
-  price: 0
+  tags: []
 })
 
-// ==================== 标签功能改造 ====================
-// 预设标签（可自行修改）
+// ==================== 标签功能 ====================
 const presetTags = ref(['声音好听', '技术一流', '心态超好', '话多有趣', '全能选手', '萌新友好', '守时靠谱', '战绩可观'])
-// 已选中的预设标签
 const selectedPresetTags = ref([])
-// 自定义标签输入
 const tagInput = ref('')
 
-// 切换预设标签
 const togglePresetTag = (tag) => {
   const index = selectedPresetTags.value.indexOf(tag)
   if (index > -1) {
@@ -308,7 +316,6 @@ const togglePresetTag = (tag) => {
   }
 }
 
-// 添加自定义标签
 const addCustomTag = () => {
   const tag = tagInput.value.trim()
   if (!tag) return
@@ -322,10 +329,8 @@ const addCustomTag = () => {
   tagInput.value = ''
 }
 
-// 删除标签
 const removeTag = (index) => {
   const tag = formData.tags[index]
-  // 同步移除预设标签选中状态
   const presetIndex = selectedPresetTags.value.indexOf(tag)
   if (presetIndex > -1) {
     selectedPresetTags.value.splice(presetIndex, 1)
@@ -338,39 +343,55 @@ const gamePopup = ref(null)
 const gameOptions = ref([{ id: '', name: '请选择游戏' }])
 const filteredGameOptions = ref([])
 const gameSearchKeyword = ref('')
-const selectedGame = ref({ id: '', name: '请选择游戏' })
+const currentSkillIndex = ref(0)
+const currentSkillGameId = ref('')
 
-// 段位等级联动
-const levelOptions = ref([{ id: '', name: '请选择段位' }])
-const selectedLevel = ref({ id: '', name: '请选择段位' })
-const levelIndex = ref(0)
+// 【新增：多游戏技能】
+const gameSkillList = ref([
+  {
+    gameId: '',
+    gameName: '',
+    levelOptions: [{ name: '请选择段位' }],
+    levelIndex: 0,
+    levelName: '',
+    typeIndex: 0,
+    typeName: '',
+    serviceType: '',
+    price: ''
+  }
+])
 
-// 加载游戏列表
-const loadGameList = async () => {
-  try {
-    const res = await getGameList()
-    if (res.code === 200) {
-      const items = res.data || []
-      gameOptions.value = [
-        { id: '', name: '请选择游戏' },
-        ...items.map(game => ({ id: game.value, name: game.label }))
-      ]
-      filteredGameOptions.value = [...gameOptions.value]
-    }
-  } catch (error) {
-    console.error('加载游戏列表失败', error)
+const addGameSkill = () => {
+  gameSkillList.value.push({
+    gameId: '',
+    gameName: '',
+    levelOptions: [{ name: '请选择段位' }],
+    levelIndex: 0,
+    levelName: '',
+    typeIndex: 0,
+    typeName: '',
+    serviceType: '',
+    price: ''
+  })
+}
+
+const removeGameSkill = (idx) => {
+  if (gameSkillList.value.length > 1) {
+    gameSkillList.value.splice(idx, 1)
+  } else {
+    uni.showToast({ title: '至少保留一个游戏', icon: 'none' })
   }
 }
 
-// 游戏弹窗
-const openGameSelector = () => {
+const openGameSelector = (idx) => {
+  currentSkillIndex.value = idx
   gamePopup.value.open()
 }
+
 const closeGameSelector = () => {
   gamePopup.value.close()
 }
 
-// 游戏搜索
 const filterGames = () => {
   const keyword = gameSearchKeyword.value.trim().toLowerCase()
   if (!keyword) {
@@ -381,65 +402,54 @@ const filterGames = () => {
     game.name.toLowerCase().includes(keyword)
   )
 }
+
 const clearGameSearch = () => {
   gameSearchKeyword.value = ''
   filterGames()
 }
 
-// 选择游戏
 const selectGame = (game) => {
-  selectedGame.value = game
-  formData.games = game.id ? [game.id] : []
+  const idx = currentSkillIndex.value
+  gameSkillList.value[idx].gameId = game.id
+  gameSkillList.value[idx].gameName = game.name
+  currentSkillGameId.value = game.id
   closeGameSelector()
 }
 
-// 监听游戏，加载段位
-watch(selectedGame, async () => {
-  selectedLevel.value = levelOptions.value[0]
-  levelIndex.value = 0
-  formData.gameRank = ''
-  
-  if (selectedGame.value.id) {
-    await loadGameLevels()
-  } else {
-    levelOptions.value = [{ id: '', name: '请选择段位' }]
+watch(currentSkillGameId, async (newVal) => {
+  const idx = currentSkillIndex.value
+  gameSkillList.value[idx].levelOptions = [{ name: '请选择段位' }]
+  gameSkillList.value[idx].levelName = ''
+  if (newVal) {
+    await loadSkillLevels(idx)
   }
 }, { deep: true })
 
-// 加载段位
-const loadGameLevels = async () => {
-  if (!selectedGame.value.id) return
+const loadSkillLevels = async (idx) => {
+  const gameId = gameSkillList.value[idx].gameId
+  if (!gameId) return
   try {
-    const res = await getDictList(`game_level_${selectedGame.value.id}`)
+    const res = await getDictList(`game_level_${gameId}`)
     if (res.code === 200) {
-      levelOptions.value = [
-        { id: '', name: '请选择段位' },
-        ...(res.data || []).map(item => ({ 
-          id: item.dictValue, 
-          name: item.dictLabel 
-        }))
+      gameSkillList.value[idx].levelOptions = [
+        { name: '请选择段位' },
+        ...(res.data || []).map(item => ({ name: item.dictLabel }))
       ]
-      selectedLevel.value = levelOptions.value[0]
     }
   } catch (error) {
-    console.error('加载段位列表失败', error)
+    console.error('加载段位失败', error)
   }
 }
 
-// 段位选择
-const onLevelChange = (e) => {
-  const index = e.detail.value
-  selectedLevel.value = levelOptions.value[index]
-  levelIndex.value = index
-  formData.gameRank = selectedLevel.value.id || ''
+const onSkillLevelChange = (idx, e) => {
+  const i = e.detail.value
+  gameSkillList.value[idx].levelIndex = i
+  gameSkillList.value[idx].levelName = gameSkillList.value[idx].levelOptions[i].name
 }
 
-// ==================== 服务类型（和列表页完全统一） ====================
-const typeOptions = ref([{ id: '', name: '全部类型' }])
-const selectedType = ref({ id: '', name: '请选择服务类型' })
-const typeIndex = ref(0)
+// ==================== 服务类型 ====================
+const typeOptions = ref([{ id: '', name: '请选择服务类型' }])
 
-// 加载服务类型字典
 const loadServiceTypes = async () => {
   try {
     const res = await getDictList('service_type')
@@ -451,22 +461,21 @@ const loadServiceTypes = async () => {
           name: item.dictLabel 
         })))
       ]
-      selectedType.value = typeOptions.value[0]
     }
   } catch (error) {
     console.error('加载服务类型失败', error)
   }
 }
 
-// 服务类型切换
-const onTypeChange = (e) => {
-  const index = e.detail.value
-  selectedType.value = typeOptions.value[index]
-  typeIndex.value = index
-  formData.serviceType = selectedType.value.id || ''
+const onSkillTypeChange = (idx, e) => {
+  const i = e.detail.value
+  const item = typeOptions.value[i]
+  gameSkillList.value[idx].typeIndex = i
+  gameSkillList.value[idx].typeName = item.name
+  gameSkillList.value[idx].serviceType = item.id
 }
 
-// 上传身份证
+// ==================== 上传 ====================
 const uploadIdCard = (type) => {
   uni.chooseImage({
     count: 1,
@@ -478,7 +487,6 @@ const uploadIdCard = (type) => {
         const uploadRes = await uploadFiles(tempFilePath)
         if (uploadRes.code === 200) {
           const data = uploadRes.data
-          console.log('上传成功', data)
           if (type === 'front') {
             formData.idCardFront = data.fileUrl
           } else {
@@ -486,46 +494,63 @@ const uploadIdCard = (type) => {
           }
         }
       } catch (error) {
-        console.error('上传失败', error)
         uni.showToast({ title: '上传失败', icon: 'none' })
       }
     }
   })
 }
 
-// 提交申请
+// 【新增：背景轮播图】
+const backgroundImages = ref([])
+const uploadBackgroundImage = () => {
+  uni.chooseImage({
+    count: 1,
+    success: async (res) => {
+      const upRes = await uploadFiles(res.tempFilePaths[0])
+      if (upRes.code === 200) {
+        backgroundImages.value.push({
+          url: upRes.data.fileUrl,
+          fileId: upRes.data.id,
+          sort: backgroundImages.value.length + 1
+        })
+      }
+    }
+  })
+}
+const removeBackgroundImage = (idx) => {
+  backgroundImages.value.splice(idx, 1)
+}
+
+// ==================== 提交申请 ====================
 const submitting = ref(false)
 const submitApply = async () => {
-  if (!formData.realName) {
-    return uni.showToast({ title: '请输入真实姓名', icon: 'none' })
-  }
-  if (!/^1[3-9]\d{9}$/.test(formData.phone)) {
-    return uni.showToast({ title: '请输入正确手机号', icon: 'none' })
-  }
-  if (!/^\d{17}[\dXx]$/.test(formData.idCard)) {
-    return uni.showToast({ title: '请输入正确身份证号', icon: 'none' })
-  }
-  if (!formData.idCardFront || !formData.idCardBack) {
-    return uni.showToast({ title: '请上传身份证正反面', icon: 'none' })
-  }
-  if (!formData.nickname) {
-    return uni.showToast({ title: `请输入${ mainText.value }昵称`, icon: 'none' })
-  }
-  if (!formData.games.length) {
-    return uni.showToast({ title: '请选择游戏', icon: 'none' })
-  }
-  if (!formData.gameRank) {
-    return uni.showToast({ title: '请选择游戏段位', icon: 'none' })
-  }
-  if (!formData.serviceType) {
-    return uni.showToast({ title: '请选择服务类型', icon: 'none' })
-  }
-  if (!formData.price || formData.price <= 0) {
-    return uni.showToast({ title: '请输入有效价格', icon: 'none' })
+  if (!formData.realName) return uni.showToast({ title: '请输入真实姓名', icon: 'none' })
+  if (!/^1[3-9]\d{9}$/.test(formData.phone)) return uni.showToast({ title: '手机号错误', icon: 'none' })
+  if (!/^\d{17}[\dXx]$/.test(formData.idCard)) return uni.showToast({ title: '身份证错误', icon: 'none' })
+  if (!formData.idCardFront || !formData.idCardBack) return uni.showToast({ title: '请上传身份证', icon: 'none' })
+  if (!formData.nickname) return uni.showToast({ title: '请输入昵称', icon: 'none' })
+
+  for (let skill of gameSkillList.value) {
+    if (!skill.gameId) return uni.showToast({ title: '请选择游戏', icon: 'none' })
+    if (!skill.levelName) return uni.showToast({ title: '请选择段位', icon: 'none' })
+    if (!skill.serviceType) return uni.showToast({ title: '请选择服务类型', icon: 'none' })
+    if (!skill.price || skill.price <= 0) return uni.showToast({ title: '请输入价格', icon: 'none' })
   }
 
   submitting.value = true
   try {
+    const gameSkills = gameSkillList.value.map(s => ({
+      gameId: s.gameId,
+      gameRank: s.levelName,
+      serviceType: s.serviceType,
+      price: Number(s.price)
+    }))
+
+    const bgImages = backgroundImages.value.map(b => ({
+      fileId: b.fileId,
+      sort: b.sort
+    }))
+
     const res = await applyCompanion({
       realName: formData.realName,
       phone: formData.phone,
@@ -535,23 +560,18 @@ const submitApply = async () => {
       nickname: formData.nickname,
       bio: formData.bio,
       tags: formData.tags,
-      games: formData.games,
-      gameRank: formData.gameRank,
-      serviceType: formData.serviceType,
-      price: Number(formData.price)
+      gameSkills: gameSkills,
+      backgroundImages: bgImages
     })
 
     if (res.code === 200) {
-      uni.showToast({ title: '申请提交成功', icon: 'success' })
-      setTimeout(() => {
-        uni.navigateBack()
-      }, 1500)
+      uni.showToast({ title: '申请成功', icon: 'success' })
+      setTimeout(() => uni.navigateBack(), 2000)
     } else {
       uni.showToast({ title: res.message || '申请失败', icon: 'none' })
     }
   } catch (error) {
-    console.error('申请失败', error)
-    uni.showToast({ title: '申请失败，请稍后重试', icon: 'none' })
+    uni.showToast({ title: '申请失败', icon: 'none' })
   } finally {
     submitting.value = false
   }
@@ -561,6 +581,19 @@ onMounted(async () => {
   await loadGameList()
   await loadServiceTypes()
 })
+
+async function loadGameList() {
+  try {
+    const res = await getGameList()
+    if (res.code === 200) {
+      gameOptions.value = [
+        { id: '', name: '请选择游戏' },
+        ...res.data.map(g => ({ id: g.value, name: g.label }))
+      ]
+      filteredGameOptions.value = [...gameOptions.value]
+    }
+  } catch (e) {}
+}
 </script>
 
 <style lang="scss" scoped>
