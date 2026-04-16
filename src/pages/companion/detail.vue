@@ -3,7 +3,7 @@
     <!-- 陪玩师信息 - 替换为轮播图 -->
     <view class="companion-header">
       <!-- 轮播图组件替换原单个背景图 -->
-      <swiper class="bg-swiper" autoplay circular indicator-dots>
+      <swiper class="bg-swiper" autoplay circular :interval="5000">
         <swiper-item v-for="(banner, index) in bannerList" :key="index">
           <image 
             :src="banner.url || banner" 
