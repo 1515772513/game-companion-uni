@@ -86,7 +86,10 @@
           <text class="menu-label">成为{{ mainText }}师</text>
         </view>
         <view class="menu-right">
-          <text class="tip" v-if="!userInfo.isCompanion">申请成为{{ mainText }}师</text>
+          <text class="tip" v-if="userInfo.companionStatus === -1">申请成为{{ mainText }}师</text>
+          <text class="tip waiting" v-if="userInfo.companionStatus === 0">审核中</text>
+          <text class="tip active" v-if="userInfo.companionStatus === 1">查看我的{{ mainText }}师信息</text>
+          <text class="tip rejected" v-if="userInfo.companionStatus === 2">审核拒绝，请重新申请</text>
           <uni-icons type="right" size="16" color="#999"></uni-icons>
         </view>
       </view>
@@ -99,7 +102,7 @@
       </view> -->
 
       <!-- 在线状态三档开关 -->
-      <view class="menu-item" v-if="userInfo.isCompanion">
+      <view class="menu-item" v-if="userInfo.companionStatus === '1'">
         <view class="menu-left">
           <uni-icons type="wifi-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">{{ mainText }}在线状态</text>
@@ -313,12 +316,16 @@ const goToWallet = () => {
 }
 
 const goToCompanionApply = () => {
-  if (userInfo.value.isCompanion) {
+  if (userInfo.value.companionStatus === 1) {
     uni.switchTab({
       url: '/packages/companion/index'
     })
+  } else if (userInfo.value.companionStatus === 0) {
+    uni.showToast({
+      title: '审核中，请耐心等待',
+      icon: 'none'
+    })
   } else {
-    
     if (!userStore.token) {
       uni.showToast({ title: '请先登录', icon: 'none' })
       setTimeout(() => {
@@ -326,7 +333,7 @@ const goToCompanionApply = () => {
       }, 1500)
     } else {
       uni.navigateTo({
-        url: '/pages/profile/companion-apply'
+        url: `/pages/profile/companion-apply?status=${userInfo.value.companionStatus}`
       })
     }
   }
@@ -611,6 +618,18 @@ const goToLogin = () => {
         font-size: 24rpx;
         color: #999;
         margin-right: 10rpx;
+
+        &.waiting {
+          color: #e79a00;
+        }
+
+        &.active {
+          color: #3b82f6;
+        }
+
+        &.rejected {
+          color: #ff4d4f;
+        }
       }
     }
 
