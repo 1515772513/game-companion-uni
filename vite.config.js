@@ -38,7 +38,7 @@ export default defineConfig({
   ] : []),
   server: {
     host: true,
-    port: 3000, // 航延本地使用13009端口
+    port: 3001,
     open: true
   },
   resolve: {
