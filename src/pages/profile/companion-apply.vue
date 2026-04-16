@@ -118,41 +118,48 @@
       <view class="form-section">
         <view class="section-title">游戏技能</view>
         
+        <!-- 游戏选择 - 底部弹窗选择器 -->
         <view class="form-item">
           <view class="label">选择游戏 <text class="required">*</text></view>
-          <picker 
-            :value="gameIndex" 
-            :range="gameList" 
-            range-key="name" 
-            @change="onGameChange"
+          <view class="picker" @tap="openGameSelector">
+            <text>{{ selectedGame.name || '请选择游戏' }}</text>
+            <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+          </view>
+        </view>
+
+        <!-- 游戏段位 - 联动Picker -->
+        <view class="form-item">
+          <view class="label">游戏段位 <text class="required">*</text></view>
+          <picker
+            :value="levelIndex"
+            :range="levelOptions"
+            range-key="name"
+            @change="onLevelChange"
+            :disabled="!selectedGame.id"
           >
-            <view class="picker">
-              <text>{{ selectedGame?.name || '请选择游戏' }}</text>
-              <uni-icons type="right" size="16" color="#999"></uni-icons>
+            <view class="picker" :class="{ disabled: !selectedGame.id }">
+              <view>{{ selectedLevel.name || '请选择段位' }}</view>
+              <view>
+                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+              </view>
             </view>
           </picker>
         </view>
 
-        <view class="form-item">
-          <view class="label">游戏段位 <text class="required">*</text></view>
-          <input 
-            v-model="formData.gameRank" 
-            class="input" 
-            placeholder="请输入游戏段位，如：王者、钻石"
-            maxlength="20"
-          />
-        </view>
-
+        <!-- 服务类型 - 统一为字典接口模式 -->
         <view class="form-item">
           <view class="label">服务类型 <text class="required">*</text></view>
-          <picker 
-            :value="serviceTypeIndex" 
-            :range="serviceTypeList" 
-            @change="onServiceTypeChange"
+          <picker
+            :value="typeIndex"
+            :range="typeOptions"
+            range-key="name"
+            @change="onTypeChange"
           >
             <view class="picker">
-              <text>{{ selectedServiceType || '请选择服务类型' }}</text>
-              <uni-icons type="right" size="16" color="#999"></uni-icons>
+              <view>{{ selectedType.name || '请选择服务类型' }}</view>
+              <view>
+                <uni-icons type="arrowdown" size="16" color="#999"></uni-icons>
+              </view>
             </view>
           </picker>
         </view>
@@ -180,18 +187,63 @@
         <text class="tip-text">提交后将进入审核，审核通过后即可成为陪玩师</text>
       </view>
     </view>
+
+    <!-- 游戏选择弹窗 -->
+    <uni-popup ref="gamePopup" type="bottom" :mask-click="false">
+      <view class="game-selector">
+        <view class="selector-header">
+          <text class="title">选择游戏</text>
+          <uni-icons type="close" size="24" color="#666" @tap="closeGameSelector"></uni-icons>
+        </view>
+        
+        <!-- 游戏搜索框 -->
+        <view class="game-search-input">
+          <uni-icons type="search" size="20" color="#999"></uni-icons>
+          <input
+            v-model="gameSearchKeyword"
+            placeholder="搜索游戏"
+            placeholder-class="placeholder"
+            @input="filterGames"
+          />
+          <uni-icons
+            v-if="gameSearchKeyword"
+            type="clear"
+            size="20"
+            color="#999"
+            @tap="clearGameSearch"
+          ></uni-icons>
+        </view>
+        
+        <!-- 游戏列表 -->
+        <view class="game-list">
+          <view 
+            class="game-item"
+            v-for="(game, index) in filteredGameOptions"
+            :key="game.id || index"
+            @tap="selectGame(game)"
+          >
+            <text :class="{ active: selectedGame.id === game.id }">{{ game.name }}</text>
+          </view>
+          
+          <view class="empty" v-if="filteredGameOptions.length === 0">
+            <text class="empty-text">未找到相关游戏</text>
+          </view>
+        </view>
+      </view>
+    </uni-popup>
   </view>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { getGameList } from '@/api/game'
+import { getDictList } from '@/api/dict'
 import { applyCompanion } from '@/api/companion'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
 
-// 表单数据（完全匹配后端 ApplyCompanionRequest）
+// 表单数据
 const formData = reactive({
   realName: '',
   phone: '',
@@ -220,37 +272,137 @@ const removeTag = (index) => {
   formData.tags.splice(index, 1)
 }
 
-// 游戏列表
-const gameList = ref([])
-const selectedGame = ref(null)
-const gameIndex = ref(0)
+// ==================== 游戏选择 ====================
+const gamePopup = ref(null)
+const gameOptions = ref([{ id: '', name: '请选择游戏' }])
+const filteredGameOptions = ref([])
+const gameSearchKeyword = ref('')
+const selectedGame = ref({ id: '', name: '请选择游戏' })
+
+// 段位等级联动
+const levelOptions = ref([{ id: '', name: '请选择段位' }])
+const selectedLevel = ref({ id: '', name: '请选择段位' })
+const levelIndex = ref(0)
+
+// 加载游戏列表
 const loadGameList = async () => {
   try {
     const res = await getGameList()
     if (res.code === 200) {
-      gameList.value = res.data.map(game => ({
-        id: game.value,
-        name: game.label
-      }))
+      const items = res.data || []
+      gameOptions.value = [
+        { id: '', name: '请选择游戏' },
+        ...items.map(game => ({ id: game.value, name: game.label }))
+      ]
+      filteredGameOptions.value = [...gameOptions.value]
     }
   } catch (error) {
     console.error('加载游戏列表失败', error)
   }
 }
-const onGameChange = (e) => {
-  gameIndex.value = e.detail.value
-  selectedGame.value = gameList.value[e.detail.value]
-  formData.games = [selectedGame.value.id]
+
+// 游戏弹窗
+const openGameSelector = () => {
+  gamePopup.value.open()
+}
+const closeGameSelector = () => {
+  gamePopup.value.close()
 }
 
-// 服务类型
-const serviceTypeList = ref(['1v1陪玩', '车队陪玩', '上分代练', '娱乐陪玩'])
-const selectedServiceType = ref('')
-const serviceTypeIndex = ref(0)
-const onServiceTypeChange = (e) => {
-  serviceTypeIndex.value = e.detail.value
-  selectedServiceType.value = serviceTypeList.value[e.detail.value]
-  formData.serviceType = serviceTypeList.value[e.detail.value]
+// 游戏搜索
+const filterGames = () => {
+  const keyword = gameSearchKeyword.value.trim().toLowerCase()
+  if (!keyword) {
+    filteredGameOptions.value = [...gameOptions.value]
+    return
+  }
+  filteredGameOptions.value = gameOptions.value.filter(game => 
+    game.name.toLowerCase().includes(keyword)
+  )
+}
+const clearGameSearch = () => {
+  gameSearchKeyword.value = ''
+  filterGames()
+}
+
+// 选择游戏
+const selectGame = (game) => {
+  selectedGame.value = game
+  formData.games = game.id ? [game.id] : []
+  closeGameSelector()
+}
+
+// 监听游戏，加载段位
+watch(selectedGame, async () => {
+  selectedLevel.value = levelOptions.value[0]
+  levelIndex.value = 0
+  formData.gameRank = ''
+  
+  if (selectedGame.value.id) {
+    await loadGameLevels()
+  } else {
+    levelOptions.value = [{ id: '', name: '请选择段位' }]
+  }
+}, { deep: true })
+
+// 加载段位
+const loadGameLevels = async () => {
+  if (!selectedGame.value.id) return
+  try {
+    const res = await getDictList(`game_level_${selectedGame.value.id}`)
+    if (res.code === 200) {
+      levelOptions.value = [
+        { id: '', name: '请选择段位' },
+        ...(res.data || []).map(item => ({ 
+          id: item.dictValue, 
+          name: item.dictLabel 
+        }))
+      ]
+      selectedLevel.value = levelOptions.value[0]
+    }
+  } catch (error) {
+    console.error('加载段位列表失败', error)
+  }
+}
+
+// 段位选择
+const onLevelChange = (e) => {
+  const index = e.detail.value
+  selectedLevel.value = levelOptions.value[index]
+  levelIndex.value = index
+  formData.gameRank = selectedLevel.value.id || ''
+}
+
+// ==================== 服务类型（和列表页完全统一） ====================
+const typeOptions = ref([{ id: '', name: '全部类型' }])
+const selectedType = ref({ id: '', name: '请选择服务类型' })
+const typeIndex = ref(0)
+
+// 加载服务类型字典
+const loadServiceTypes = async () => {
+  try {
+    const res = await getDictList('service_type')
+    if (res.code === 200) {
+      typeOptions.value = [
+        { id: '', name: '请选择服务类型' },
+        ...((res.data || []).map(item => ({ 
+          id: item.dictValue, 
+          name: item.dictLabel 
+        })))
+      ]
+      selectedType.value = typeOptions.value[0]
+    }
+  } catch (error) {
+    console.error('加载服务类型失败', error)
+  }
+}
+
+// 服务类型切换
+const onTypeChange = (e) => {
+  const index = e.detail.value
+  selectedType.value = typeOptions.value[index]
+  typeIndex.value = index
+  formData.serviceType = selectedType.value.id || ''
 }
 
 // 上传身份证
@@ -262,7 +414,6 @@ const uploadIdCard = (type) => {
     success: async (res) => {
       const tempFilePath = res.tempFilePaths[0]
       try {
-        // 调用上传接口，替换为你的上传方法
         const uploadRes = await uni.uploadFile({
           url: '/api/upload',
           filePath: tempFilePath,
@@ -287,7 +438,6 @@ const uploadIdCard = (type) => {
 // 提交申请
 const submitting = ref(false)
 const submitApply = async () => {
-  // 前端校验
   if (!formData.realName) {
     return uni.showToast({ title: '请输入真实姓名', icon: 'none' })
   }
@@ -307,7 +457,7 @@ const submitApply = async () => {
     return uni.showToast({ title: '请选择游戏', icon: 'none' })
   }
   if (!formData.gameRank) {
-    return uni.showToast({ title: '请输入游戏段位', icon: 'none' })
+    return uni.showToast({ title: '请选择游戏段位', icon: 'none' })
   }
   if (!formData.serviceType) {
     return uni.showToast({ title: '请选择服务类型', icon: 'none' })
@@ -349,8 +499,9 @@ const submitApply = async () => {
   }
 }
 
-onMounted(() => {
-  loadGameList()
+onMounted(async () => {
+  await loadGameList()
+  await loadServiceTypes()
 })
 </script>
 
@@ -422,6 +573,11 @@ onMounted(() => {
       align-items: center;
       justify-content: space-between;
       box-sizing: border-box;
+      
+      &.disabled {
+        color: #999;
+        background-color: #fafafa;
+      }
     }
 
     .upload-group {
@@ -518,6 +674,80 @@ onMounted(() => {
   .tip-text {
     font-size: 24rpx;
     color: #999;
+  }
+}
+
+// 游戏选择器样式
+.game-selector {
+  background-color: #fff;
+  border-radius: 20rpx 20rpx 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+
+  .selector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 30rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+
+    .title {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: #333;
+    }
+  }
+
+  .game-search-input {
+    display: flex;
+    align-items: center;
+    height: 70rpx;
+    background-color: #f5f5f5;
+    border-radius: 35rpx;
+    padding: 0 30rpx;
+    margin: 20rpx 30rpx;
+
+    input {
+      flex: 1;
+      margin: 0 10rpx;
+      font-size: 28rpx;
+    }
+
+    .placeholder {
+      color: #999;
+    }
+  }
+
+  .game-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 30rpx 20rpx;
+
+    .game-item {
+      padding: 20rpx 0;
+      border-bottom: 1rpx solid #f5f5f5;
+      font-size: 28rpx;
+      color: #333;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .active {
+        color: #3b82f6;
+        font-weight: bold;
+      }
+    }
+
+    .empty {
+      padding: 50rpx 0;
+      text-align: center;
+      .empty-text {
+        font-size: 26rpx;
+        color: #999;
+      }
+    }
   }
 }
 </style>
