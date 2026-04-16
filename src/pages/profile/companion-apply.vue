@@ -869,4 +869,55 @@ async function loadGameList() {
     }
   }
 }
+// 游戏技能头部优化
+.game-skill-group {
+  background: #fafbfc;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid #e8e8e8;
+
+  .skill-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16rpx 20rpx;
+    background: linear-gradient(90deg, #eef2ff, #f8fafc);
+    border-radius: 10rpx;
+    margin-bottom: 20rpx;
+    font-size: 28rpx;
+    font-weight: 600;
+    color: #1f2937;
+
+    .del-btn {
+      color: #ff4d4f;
+      font-size: 24rpx;
+      padding: 6rpx 12rpx;
+      border-radius: 6rpx;
+      background: rgba(255,77,79,0.08);
+      transition: all 0.2s;
+
+      &:active {
+        background: rgba(255,77,79,0.15);
+        transform: scale(0.96);
+      }
+    }
+  }
+}
+
+// 添加游戏按钮优化
+.add-game-btn {
+  width: 100%;
+  height: 80rpx;
+  background: #f8f9ff;
+  color: #3b82f6;
+  border: 1rpx dashed #c7d2fe;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  margin-top: 10rpx;
+
+  &::after {
+    border: none;
+  }
+}
 </style>
