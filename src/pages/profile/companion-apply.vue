@@ -257,6 +257,7 @@ import { getGameList } from '@/api/game'
 import { getDictList } from '@/api/dict'
 import { applyCompanion } from '@/api/companion'
 import { useUserStore } from '@/store/user'
+import { uploadFiles } from '@/api/file'
 
 const userStore = useUserStore()
 
@@ -467,17 +468,14 @@ const uploadIdCard = (type) => {
     success: async (res) => {
       const tempFilePath = res.tempFilePaths[0]
       try {
-        const uploadRes = await uni.uploadFile({
-          url: '/api/upload',
-          filePath: tempFilePath,
-          name: 'file'
-        })
-        const data = JSON.parse(uploadRes.data)
-        if (data.code === 200) {
+        const uploadRes = await uploadFiles(tempFilePath)
+        if (uploadRes.code === 200) {
+          const data = uploadRes.data
+          console.log('上传成功', data)
           if (type === 'front') {
-            formData.idCardFront = data.data.url
+            formData.idCardFront = data.fileUrl
           } else {
-            formData.idCardBack = data.data.url
+            formData.idCardBack = data.fileUrl
           }
         }
       } catch (error) {

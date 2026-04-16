@@ -225,8 +225,8 @@ export function uploadFile(filePath, options = {}) {
         mask: true
       })
     }
-
-    const uploadURL = options.url || appStore.config.uploadURL
+    const { env, baseUrl } = getEnvConfig()
+    const uploadURL = baseUrl + (options.url || appStore.config.uploadURL)
 
     uni.uploadFile({
       url: uploadURL,
