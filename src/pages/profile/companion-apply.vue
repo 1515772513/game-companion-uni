@@ -170,7 +170,7 @@
             <picker
               :value="skill.levelIndex"
               :range="skill.levelOptions"
-              range-key="name"
+              range-key="id"
               @change="onSkillLevelChange(idx, $event)"
               :disabled="!skill.gameId"
             >
@@ -450,7 +450,7 @@ const loadSkillLevels = async (idx) => {
     if (res.code === 200) {
       gameSkillList.value[idx].levelOptions = [
         { name: '请选择段位' },
-        ...(res.data || []).map(item => ({ name: item.dictLabel }))
+        ...(res.data || []).map(item => ({ name: item.dictLabel, id: item.dictValue }))
       ]
     }
   } catch (error) {
@@ -461,7 +461,7 @@ const loadSkillLevels = async (idx) => {
 const onSkillLevelChange = (idx, e) => {
   const i = e.detail.value
   gameSkillList.value[idx].levelIndex = i
-  gameSkillList.value[idx].levelName = gameSkillList.value[idx].levelOptions[i].name
+  gameSkillList.value[idx].levelName = gameSkillList.value[idx].levelOptions[i].id
 }
 
 // ==================== 服务类型 ====================
