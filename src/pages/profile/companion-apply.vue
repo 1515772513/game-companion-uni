@@ -91,8 +91,24 @@
           ></textarea>
         </view>
 
+        <!-- 改造：预设可选标签 + 自定义输入 -->
         <view class="form-item">
           <view class="label">擅长标签</view>
+          
+          <!-- 预设标签区 -->
+          <view class="preset-tags">
+            <view 
+              class="preset-tag"
+              :class="{ active: selectedPresetTags.includes(tag) }"
+              v-for="tag in presetTags" 
+              :key="tag"
+              @tap="togglePresetTag(tag)"
+            >
+              {{ tag }}
+            </view>
+          </view>
+          
+          <!-- 已选标签 + 自定义输入 -->
           <view class="tags-input">
             <view 
               class="tag-item" 
@@ -106,11 +122,12 @@
             <input 
               v-model="tagInput" 
               class="tag-input" 
-              placeholder="输入标签按回车添加"
-              @confirm="addTag"
-              @blur="addTag"
+              placeholder="输入自定义标签，按回车添加"
+              @confirm="addCustomTag"
+              @blur="addCustomTag"
             />
           </view>
+          <text class="tip">最多选择10个标签，点击可删除</text>
         </view>
       </view>
 
@@ -250,7 +267,7 @@ const formData = reactive({
   idCard: '',
   idCardFront: '',
   idCardBack: '',
-  nickname: '',
+  nickname: userStore.nickname,
   bio: '',
   tags: [],
   games: [],
@@ -259,16 +276,52 @@ const formData = reactive({
   price: 0
 })
 
-// 标签输入
+// ==================== 标签功能改造 ====================
+// 预设标签（可自行修改）
+const presetTags = ref(['声音好听', '技术一流', '心态超好', '话多有趣', '全能选手', '萌新友好', '守时靠谱', '战绩可观'])
+// 已选中的预设标签
+const selectedPresetTags = ref([])
+// 自定义标签输入
 const tagInput = ref('')
-const addTag = () => {
-  const tag = tagInput.value.trim()
-  if (tag && !formData.tags.includes(tag) && formData.tags.length < 10) {
+
+// 切换预设标签
+const togglePresetTag = (tag) => {
+  const index = selectedPresetTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedPresetTags.value.splice(index, 1)
+    formData.tags = formData.tags.filter(t => t !== tag)
+  } else {
+    if (formData.tags.length >= 10) {
+      uni.showToast({ title: '最多只能添加10个标签', icon: 'none' })
+      return
+    }
+    selectedPresetTags.value.push(tag)
     formData.tags.push(tag)
-    tagInput.value = ''
   }
 }
+
+// 添加自定义标签
+const addCustomTag = () => {
+  const tag = tagInput.value.trim()
+  if (!tag) return
+  if (formData.tags.length >= 10) {
+    uni.showToast({ title: '最多只能添加10个标签', icon: 'none' })
+    return
+  }
+  if (!formData.tags.includes(tag)) {
+    formData.tags.push(tag)
+  }
+  tagInput.value = ''
+}
+
+// 删除标签
 const removeTag = (index) => {
+  const tag = formData.tags[index]
+  // 同步移除预设标签选中状态
+  const presetIndex = selectedPresetTags.value.indexOf(tag)
+  if (presetIndex > -1) {
+    selectedPresetTags.value.splice(presetIndex, 1)
+  }
   formData.tags.splice(index, 1)
 }
 
@@ -614,6 +667,27 @@ onMounted(async () => {
       }
     }
 
+    // 预设标签样式
+    .preset-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16rpx;
+      margin-bottom: 20rpx;
+
+      .preset-tag {
+        padding: 10rpx 20rpx;
+        background-color: #f5f5f5;
+        border-radius: 30rpx;
+        font-size: 24rpx;
+        color: #666;
+
+        &.active {
+          background-color: #3b82f6;
+          color: #fff;
+        }
+      }
+    }
+
     .tags-input {
       display: flex;
       flex-wrap: wrap;
@@ -634,6 +708,7 @@ onMounted(async () => {
         display: flex;
         align-items: center;
         gap: 4rpx;
+        cursor: pointer;
       }
 
       .tag-input {
@@ -644,6 +719,12 @@ onMounted(async () => {
         font-size: 28rpx;
         outline: none;
       }
+    }
+
+    .tip {
+      font-size: 22rpx;
+      color: #999;
+      margin-top: 8rpx;
     }
   }
 }
