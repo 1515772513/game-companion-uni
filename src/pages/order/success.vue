@@ -6,7 +6,7 @@
         <uni-icons type="checkmarkempty" size="60" color="#fff"></uni-icons>
       </view>
       <text class="success-title">订单提交成功</text>
-      <!-- <text class="success-desc">我们已收到您的陪玩服务订单</text> -->
+      <!-- <text class="success-desc">我们已收到您的{{ mainText }}服务订单</text> -->
     </view>
 
     <!-- 订单信息卡片 -->
@@ -47,7 +47,7 @@
     <view class="tip-card">
       <view class="tip-title">温馨提示</view>
       <text class="tip-content">
-        请复制订单信息后及时联系在线客服，客服将尽快为您安排陪玩师服务，感谢您的支持与配合！
+        请复制订单信息后及时联系在线客服，客服将尽快为您安排{{ mainText }}师服务，感谢您的支持与配合！
       </text>
     </view>
 
@@ -72,8 +72,15 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, computed } from 'vue'
   import { getOrderDetail } from '@/api/order'
+  import { useAppStore } from '@/store/app'
+
+  const appStore = useAppStore()
+
+  const mainText = computed(() => {
+    return appStore.getConfig.mainText
+  })
 
   const orderNo = ref('')
   const orderInfo = ref({})

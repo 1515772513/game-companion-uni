@@ -69,14 +69,14 @@
 
       <!-- 陪玩信息 -->
       <view class="form-section">
-        <view class="section-title">陪玩信息</view>
+        <view class="section-title">{{ mainText }}信息</view>
         
         <view class="form-item">
-          <view class="label">陪玩昵称 <text class="required">*</text></view>
+          <view class="label">{{ mainText }}昵称 <text class="required">*</text></view>
           <input 
             v-model="formData.nickname" 
             class="input" 
-            placeholder="请输入陪玩昵称"
+            placeholder="请输入{{ mainText }}昵称"
             maxlength="20"
           />
         </view>
@@ -201,7 +201,7 @@
         >
           {{ submitting ? '提交中...' : '提交申请' }}
         </button>
-        <text class="tip-text">提交后将进入审核，审核通过后即可成为陪玩师</text>
+        <text class="tip-text">提交后将进入审核，审核通过后即可成为{{ mainText }}师</text>
       </view>
     </view>
 
@@ -258,6 +258,13 @@ import { getDictList } from '@/api/dict'
 import { applyCompanion } from '@/api/companion'
 import { useUserStore } from '@/store/user'
 import { uploadFiles } from '@/api/file'
+import { useAppStore } from '@/store/app'
+
+const appStore = useAppStore()
+
+const mainText = computed(() => {
+  return appStore.getConfig.mainText
+})
 
 const userStore = useUserStore()
 
@@ -502,7 +509,7 @@ const submitApply = async () => {
     return uni.showToast({ title: '请上传身份证正反面', icon: 'none' })
   }
   if (!formData.nickname) {
-    return uni.showToast({ title: '请输入陪玩昵称', icon: 'none' })
+    return uni.showToast({ title: `请输入${ mainText.value }昵称`, icon: 'none' })
   }
   if (!formData.games.length) {
     return uni.showToast({ title: '请选择游戏', icon: 'none' })

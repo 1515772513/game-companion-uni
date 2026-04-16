@@ -1,8 +1,17 @@
 <template>
   <view class="companion-detail-page">
-    <!-- 陪玩师信息 -->
+    <!-- 陪玩师信息 - 替换为轮播图 -->
     <view class="companion-header">
-      <image :src="companionInfo.avatarUrl || companionInfo.avatar" mode="aspectFill" class="bg-image"></image>
+      <!-- 轮播图组件替换原单个背景图 -->
+      <swiper class="bg-swiper" autoplay circular indicator-dots>
+        <swiper-item v-for="(banner, index) in bannerList" :key="index">
+          <image 
+            :src="banner.url || banner" 
+            mode="aspectFill" 
+            class="bg-image"
+          ></image>
+        </swiper-item>
+      </swiper>
       <view class="header-mask"></view>
       <view class="header-content">
         <view class="avatar-row">
@@ -177,6 +186,18 @@ const reviews = ref([])
 const selectedService = ref(null)
 const loading = ref(false)
 
+// 轮播图列表 - 兼容相册/头像作为兜底
+const bannerList = computed(() => {
+  // 优先使用banner字段，无则使用相册，最后使用头像兜底
+  if (companionInfo.value.banners?.length) {
+    return companionInfo.value.banners
+  } else if (companionInfo.value.gallery?.length || companionInfo.value.images?.length) {
+    return companionInfo.value.gallery || companionInfo.value.images
+  } else {
+    return [companionInfo.value.avatarUrl || companionInfo.value.avatar]
+  }
+})
+
 // 游戏选择
 const games = ref([])
 const selectedGame = ref({})
@@ -347,10 +368,16 @@ const previewReviewImage = (index, images) => {
   height: 400rpx;
   overflow: hidden;
 
-  .bg-image {
+  // 轮播图样式
+  .bg-swiper {
     width: 100%;
     height: 100%;
-    filter: blur(20rpx);
+    
+    .bg-image {
+      width: 100%;
+      height: 100%;
+      filter: blur(20rpx);
+    }
   }
 
   .header-mask {
@@ -360,6 +387,7 @@ const previewReviewImage = (index, images) => {
     right: 0;
     bottom: 0;
     background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
+    z-index: 1;
   }
 
   .header-content {
@@ -369,6 +397,7 @@ const previewReviewImage = (index, images) => {
     right: 0;
     padding: 30rpx;
     color: #fff;
+    z-index: 2;
 
     .avatar-row {
       display: flex;
@@ -443,6 +472,22 @@ const previewReviewImage = (index, images) => {
       }
     }
   }
+}
+
+/* 轮播图指示器样式自定义 */
+::v-deep .uni-swiper-dot {
+  width: 12rpx;
+  height: 12rpx;
+  background-color: rgba(255,255,255,0.5);
+  border-radius: 6rpx;
+  margin: 0 6rpx;
+}
+::v-deep .uni-swiper-dot-active {
+  background-color: #fff;
+  width: 24rpx;
+}
+::v-deep .uni-swiper-dots {
+  bottom: 20rpx;
 }
 
 /* 游戏标签样式 */
