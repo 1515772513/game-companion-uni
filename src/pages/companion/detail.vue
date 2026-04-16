@@ -188,9 +188,9 @@ const loading = ref(false)
 
 // 轮播图列表 - 兼容相册/头像作为兜底
 const bannerList = computed(() => {
-  // 优先使用banner字段，无则使用相册，最后使用头像兜底
-  if (companionInfo.value.banners?.length) {
-    return companionInfo.value.banners
+  // 优先使用backgroundImages字段，无则使用相册，最后使用头像兜底
+  if (companionInfo.value.backgroundImages?.length) {
+    return companionInfo.value.backgroundImages
   } else if (companionInfo.value.gallery?.length || companionInfo.value.images?.length) {
     return companionInfo.value.gallery || companionInfo.value.images
   } else {
@@ -376,7 +376,6 @@ const previewReviewImage = (index, images) => {
     .bg-image {
       width: 100%;
       height: 100%;
-      filter: blur(20rpx);
     }
   }
 
