@@ -10,6 +10,7 @@
     "dev:h5": "uni",
     "dev:h5:ssr": "uni --ssr",
     "dev:mp-weixin": "uni -p mp-weixin",
+    "dev:mp-weixin:prod": "uni -p mp-weixin --mode production",
     "dev:custom:mp-weixin-no-live": "uni -p mp-weixin-no-live",
     "build:app": "uni build -p app",
     "build:app-android": "uni build -p app-android",

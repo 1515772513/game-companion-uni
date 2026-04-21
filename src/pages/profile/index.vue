@@ -143,13 +143,13 @@
 
     <!-- 其他功能 -->
     <view class="menu-section">
-      <view class="menu-item" @tap="goToFeedback">
+      <!-- <view class="menu-item" @tap="goToFeedback">
         <view class="menu-left">
           <uni-icons type="chatbubble-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">意见反馈</text>
         </view>
         <uni-icons type="right" size="16" color="#999"></uni-icons>
-      </view>
+      </view> -->
       <!-- <view class="menu-item" @tap="goToAbout">
         <view class="menu-left">
           <uni-icons type="info-filled" size="22" color="#3b82f6"></uni-icons>

@@ -142,12 +142,12 @@
         "selectedIconPath": "static/tabbar/order-active.png",
         "text": "订单"
       },
-      {
-        "pagePath": "pages/message/list",
-        "iconPath": "static/tabbar/message.png",
-        "selectedIconPath": "static/tabbar/message-active.png",
-        "text": "消息"
-      },
+      // {
+      //   "pagePath": "pages/message/list",
+      //   "iconPath": "static/tabbar/message.png",
+      //   "selectedIconPath": "static/tabbar/message-active.png",
+      //   "text": "消息"
+      // },
       {
         "pagePath": "pages/profile/index",
         "iconPath": "static/tabbar/profile.png",

@@ -155,10 +155,10 @@
           ></uni-icons>
           <text class="btn-label">{{ companionInfo.isFavorite ? '已收藏' : '收藏' }}</text>
         </view>
-        <view class="action-btn" @tap="goToChat">
+        <!-- <view class="action-btn" @tap="goToChat">
           <uni-icons type="chatbubble" size="24" color="#666"></uni-icons>
           <text class="btn-label">私聊</text>
-        </view>
+        </view> -->
       </view>
       <button class="order-btn" @tap="goToCreateOrder" :disabled="!selectedService">
         立即下单
