@@ -182,6 +182,7 @@ import { getOrderStats } from '@/api/order'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
 import { computed } from 'vue'
+import { checkAuthInfo } from '@/utils/common'
 
 const appStore = useAppStore()
 
@@ -287,8 +288,10 @@ const loadOrderStats = async () => {
 }
 
 const goToEditProfile = () => {
-  uni.navigateTo({
-    url: '/pages/profile/edit'
+  checkAuthInfo(() => {
+    uni.navigateTo({
+      url: '/pages/profile/edit'
+    })
   })
 }
 
@@ -387,8 +390,8 @@ const handleLogout = () => {
         }
 
         uni.clearStorageSync()
-        uni.reLaunch({
-          url: '/pages/user/login'
+        uni.redirectTo({
+          url: '/pages/index/index'
         })
       }
     }

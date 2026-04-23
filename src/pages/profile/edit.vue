@@ -54,12 +54,12 @@
     <view class="form-section">
       <view class="section-title">个人简介</view>
       <textarea
-        v-model="formData.intro"
+        v-model="formData.bio"
         class="textarea"
         placeholder="介绍一下自己吧..."
         maxlength="200"
       ></textarea>
-      <view class="char-count">{{ (formData.intro || '').length }}/200</view>
+      <view class="char-count">{{ (formData.bio || '').length }}/200</view>
     </view>
 
     <!-- 保存按钮 -->
@@ -73,7 +73,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserInfo, updateUserInfo, updateAvatar, uploadImage } from '@/api/user'
+import { getUserInfo, updateUserInfo, updateAvatar } from '@/api/user'
+import { uploadFiles } from '@/api/file'
 
 const userInfo = ref({})
 const formData = ref({
@@ -81,7 +82,7 @@ const formData = ref({
   nickname: '',
   gender: '',
   birthday: '',
-  intro: ''
+  bio: ''
 })
 const saving = ref(false)
 
@@ -101,8 +102,8 @@ const loadUserInfo = async () => {
         avatar: res.data.avatar || res.data.avatar_url || '',
         nickname: res.data.nickname || '',
         gender: res.data.gender || '',
-        birthday: res.data.birthday || '',
-        intro: res.data.intro || ''
+        birthday: res.data.birthdayStr || '',
+        bio: res.data.bio || ''
       }
     }
   } catch (error) {
@@ -121,17 +122,15 @@ const chooseAvatar = () => {
     sourceType: ['album', 'camera'],
     success: async (res) => {
       const tempFilePath = res.tempFilePaths[0]
-
-      // 上传头像
       try {
-        uni.showLoading({ title: '上传中...' })
-
-        const uploadRes = await uploadImage(tempFilePath)
+        const uploadRes = await uploadFiles(tempFilePath)
         if (uploadRes.code === 200) {
-          const avatarUrl = uploadRes.data.url || uploadRes.data.file_url
+          const data = uploadRes.data
+          const avatarUrl = data.fileUrl
+          const avatarPath = data.fileId
 
           // 更新头像
-          const updateRes = await updateAvatar({ avatar: avatarUrl })
+          const updateRes = await updateAvatar({ avatarUrl: avatarUrl })
           if (updateRes.code === 200) {
             formData.value.avatar = avatarUrl
             uni.showToast({
@@ -141,13 +140,7 @@ const chooseAvatar = () => {
           }
         }
       } catch (error) {
-        console.error('上传头像失败', error)
-        uni.showToast({
-          title: '上传失败',
-          icon: 'none'
-        })
-      } finally {
-        uni.hideLoading()
+        uni.showToast({ title: '上传失败', icon: 'none' })
       }
     }
   })
@@ -177,7 +170,7 @@ const saveProfile = async () => {
       nickname: formData.value.nickname,
       gender: formData.value.gender,
       birthday: formData.value.birthday,
-      intro: formData.value.intro
+      bio: formData.value.bio
     })
 
     if (res.code === 200) {

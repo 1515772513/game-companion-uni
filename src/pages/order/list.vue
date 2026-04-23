@@ -101,6 +101,7 @@ import { getOrderList, cancelOrder as cancelOrderApi, payOrder as payOrderApi, g
 import { useAppStore } from '@/store/app'
 import { computed } from 'vue'
 import { getDictList } from '@/api/dict'
+import { checkAuthInfo } from '@/utils/common'
 
 const appStore = useAppStore()
 
@@ -127,15 +128,11 @@ const hasMore = ref(false)
 const loading = ref(false)
 
 onShow(() => {
-  if (appStore.token) {
+  checkAuthInfo(() => {
     loadOrderStatuses()
     loadOrderCounts()
     loadOrders()
-  }
-})
-
-onMounted(() => {
-  loadOrderStatuses()
+  })
 })
 
 

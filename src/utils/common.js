@@ -496,33 +496,15 @@ export function setRouteUrlAfterLogin() {
 /**
  * 检查是否授权
  */
-export function checkAuthInfo(fn, redirectInfo, redirectObj, navigateType) {
+export function checkAuthInfo(fn, redirectInfo = "", redirectObj = {}, navigateType = "navigate") {
   // eslint-disable-next-line no-undef
   const pages = getCurrentPages();
   if (uni.getStorageSync("token")) {
     fn();
     return;
-  }
-  // if (pages[0] && pages[0].route === "pages/index/index") {
-  //   return;
-  // }
-  redirectInfo
-    ? uni.setStorageSync("afterLogin", redirectInfo)
-    : uni.removeStorageSync("afterLogin");
-  // 设置登录后的跳转地址
-  setRouteUrlAfterLogin();
-
-  const redirectParams = redirectObj
-    ? "?redirectObj=" + encodeURIComponent(JSON.stringify(redirectObj))
-    : "";
-  const url = `/package-user/pages/user-login/user-login${redirectParams}`;
-  if (navigateType === "redirect") {
-    uni.redirectTo({
-      url,
-    });
   } else {
     uni.navigateTo({
-      url,
+      url: '/pages/user/login',
     });
   }
 }

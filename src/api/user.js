@@ -84,7 +84,7 @@ export function updateUserInfo(data) {
  * @returns {Promise}
  */
 export function updateAvatar(data) {
-  return put('/user/avatar', data)
+  return post('/user/upload-avatar', data)
 }
 
 /**
@@ -366,7 +366,7 @@ export function submitFeedback(data) {
  * @returns {Promise}
  */
 export function uploadImage(filePath, options = {}) {
-  return post('/user/upload/image', { filePath, ...options })
+  return post('/file/upload', { filePath, ...options })
 }
 
 /**

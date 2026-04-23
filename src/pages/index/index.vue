@@ -71,7 +71,7 @@
             v-for="companion in companions"
             :key="companion.id"
             @tap="goToDetail(companion.id)">
-        <image :src="companion.avatar_url" mode="aspectFill" class="companion-avatar"></image>
+        <image :src="companion.avatarUrl" mode="aspectFill" class="companion-avatar"></image>
         <view class="companion-info">
           <view class="companion-name-row">
             <text class="companion-name">{{ companion.nickname }}</text>

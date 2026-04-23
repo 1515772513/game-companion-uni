@@ -87,7 +87,7 @@
         :key="companion.id"
         @tap="goToDetail(companion.id)"
       >
-        <image :src="companion.avatar_url" mode="aspectFill" class="avatar"></image>
+        <image :src="companion.avatarUrl" mode="aspectFill" class="avatar"></image>
         <view class="info">
           <view class="name-row">
             <text class="name">{{ companion.nickname }}</text>
