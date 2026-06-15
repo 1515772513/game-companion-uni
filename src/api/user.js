@@ -57,7 +57,7 @@ export function register(data) {
  * @returns {Promise}
  */
 export function sendSmsCode(data) {
-  return post('/user/sms/send', data)
+  return post('/auth/send-code', data)
 }
 
 /**
@@ -407,7 +407,7 @@ export function getAgreement(type) {
 
 
 /**
- * 手机号登录
+ * 手机号一键登录（无验证码）
  * @param {Object} data - 登录数据
  * @param {string} data.phone - 手机号
  * @returns {Promise}
@@ -417,11 +417,35 @@ export function smsLogin(data) {
 }
 
 /**
- * 更新陪玩师状态
+ * 手机号验证码登录（非微信环境使用）
+ * @param {Object} data - 登录数据
+ * @param {string} data.phone - 手机号
+ * @param {string} data.code - 短信验证码
+ * @returns {Promise}
+ */
+export function phoneLogin(data) {
+  return post('/auth/phone-login', data)
+}
+
+/**
+ * 手机号密码登录（非微信环境使用）
+ * @param {Object} data - 登录数据
+ * @param {string} data.phone - 手机号
+ * @param {string} data.password - 密码
+ * @returns {Promise}
+ */
+export function phonePasswordLogin(data) {
+  return post('/auth/phone-password-login', data)
+}
+
+/**
+ * @deprecated 后端无 /user/companion/status 接口。
+ * 请改用 @/api/companion 的 setCompanionOnlineStatus（PUT /companion/online-status，body: { onlineStatus: 0/1/2 }）。
+ * 保留此函数仅为兼容旧调用，内部已转发到正确接口。
  * @param {Object} data - 状态数据
- * @param {string} data.status - 状态: online, busy, offline
+ * @param {number} data.onlineStatus - 在线状态：0-离线，1-在线，2-忙碌
  * @returns {Promise}
  */
 export function updateCompanionStatus(data) {
-  return put('/user/companion/status', data)
+  return put('/companion/online-status', data)
 }

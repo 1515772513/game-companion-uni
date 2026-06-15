@@ -1,5 +1,22 @@
 /**
  * 陪玩师相关接口
+ *
+ * ⚠️ 接口对接说明（已对照后端 game-companion-api/Controllers/CompanionController.cs 校正）：
+ * 已验证存在的后端接口：
+ *   GET  /companion/list              列表（查询参数 snake_case：page/page_size/game_id/service_type/level/sort/online_status/keyword）
+ *   GET  /companion/{id}              详情
+ *   GET  /companion/{id}/services     服务列表
+ *   GET  /companion/{id}/reviews      评价列表
+ *   GET  /companion/my-info           我的陪玩师信息
+ *   PUT  /companion/my-info           更新我的陪玩师信息（UpdateCompanionInfoRequest）
+ *   POST /companion/apply             申请成为陪玩师
+ *   GET  /companion/application-status 申请状态
+ *   PUT  /companion/online-status     切换在线状态（body: { onlineStatus: 0离线/1在线/2忙碌 }）
+ *   GET  /companion/orders            接单列表
+ *   POST /companion/orders/{id}/accept|reject|start|complete  订单流转
+ *   GET  /companion/earnings、POST /companion/withdraw、GET /companion/withdraw-records
+ * 下方其余函数（recommended/hot/new、gallery、intro、service CRUD、calendar、worktime、
+ *   level、ranking、notifications、review reply 等）后端暂未实现，调用前请先与后端确认。
  */
 import { get, post, put, del } from '../utils/request'
 
@@ -115,14 +132,18 @@ export function getCompanionOnlineStatus(companionId) {
 }
 
 /**
- * 申请成为陪玩师
+ * 申请成为陪玩师（对应后端 POST /companion/apply，ApplyCompanionRequest）
  * @param {Object} data - 申请数据
  * @param {string} data.realName - 真实姓名
- * @param {string} data.idCard - 身份证号
+ * @param {string} data.idCard - 身份证号（18位）
+ * @param {string} data.idCardFrontUrl - 身份证正面照URL
+ * @param {string} data.idCardBackUrl - 身份证反面照URL
  * @param {string} data.phone - 手机号
- * @param {Array} data.images - 照片列表
- * @param {string} data.intro - 个人简介
- * @param {Array} data.games - 游戏列表
+ * @param {string} data.nickname - 昵称
+ * @param {string} data.bio - 个人简介（后端必填）
+ * @param {Array<string>} [data.tags] - 标签
+ * @param {Array<{gameId:number,gameRank:string,serviceType:string,price:number}>} data.gameSkills - 游戏技能
+ * @param {Array<{fileId:string,sort:number}>} [data.backgroundImages] - 背景轮播图
  * @returns {Promise}
  */
 export function applyCompanion(data) {
@@ -134,7 +155,7 @@ export function applyCompanion(data) {
  * @returns {Promise}
  */
 export function getCompanionApplyStatus() {
-  return get('/companion/apply/status')
+  return get('/companion/application-status')
 }
 
 /**
@@ -142,16 +163,17 @@ export function getCompanionApplyStatus() {
  * @returns {Promise}
  */
 export function getCompanionProfile() {
-  return get('/companion/profile')
+  return get('/companion/my-info')
 }
 
 /**
  * 更新陪玩师个人信息
- * @param {Object} data - 更新数据
+ * 对应后端 PUT /companion/my-info（UpdateCompanionInfoRequest）
+ * @param {Object} data - 更新数据，仅支持 { nickname?, avatarUrl?, serviceType?, price?, bio?, tags? }
  * @returns {Promise}
  */
 export function updateCompanionProfile(data) {
-  return put('/companion/profile', data)
+  return put('/companion/my-info', data)
 }
 
 /**
@@ -264,7 +286,7 @@ export function getCompanionOrders(params) {
  * @returns {Promise}
  */
 export function acceptOrder(orderId) {
-  return post(`/companion/order/${orderId}/accept`)
+  return post(`/companion/orders/${orderId}/accept`)
 }
 
 /**
@@ -275,7 +297,7 @@ export function acceptOrder(orderId) {
  * @returns {Promise}
  */
 export function rejectOrder(orderId, data) {
-  return post(`/companion/order/${orderId}/reject`, data)
+  return post(`/companion/orders/${orderId}/reject`, data)
 }
 
 /**
@@ -284,19 +306,17 @@ export function rejectOrder(orderId, data) {
  * @returns {Promise}
  */
 export function startService(orderId) {
-  return post(`/companion/order/${orderId}/start`)
+  return post(`/companion/orders/${orderId}/start`)
 }
 
 /**
- * 结束服务
+ * 完成服务（对应后端 POST /companion/orders/{id}/complete）
  * @param {string} orderId - 订单ID
- * @param {Object} data - 结束数据
- * @param {number} data.actualDuration - 实际时长(分钟)
- * @param {string} data.remark - 备注
+ * @param {string} [serviceSummary] - 服务总结（后端 body 为字符串）
  * @returns {Promise}
  */
-export function endService(orderId, data) {
-  return post(`/companion/order/${orderId}/end`, data)
+export function endService(orderId, serviceSummary) {
+  return post(`/companion/orders/${orderId}/complete`, serviceSummary)
 }
 
 /**
@@ -329,7 +349,7 @@ export function getCompanionEarningRecords(params) {
  * @returns {Promise}
  */
 export function getCompanionWithdrawRecords(params) {
-  return get('/companion/withdraw/records', params)
+  return get('/companion/withdraw-records', params)
 }
 
 /**
@@ -372,13 +392,13 @@ export function setCompanionWorkTime(data) {
 }
 
 /**
- * 设置陪玩师在线状态
+ * 设置陪玩师在线状态（对应后端 PUT /companion/online-status）
  * @param {Object} data - 状态数据
- * @param {boolean} data.online - 是否在线
+ * @param {number} data.onlineStatus - 在线状态：0-离线，1-在线，2-忙碌
  * @returns {Promise}
  */
 export function setCompanionOnlineStatus(data) {
-  return put('/companion/status/online', data)
+  return put('/companion/online-status', data)
 }
 
 /**
@@ -431,13 +451,8 @@ export function replyReview(reviewId, data) {
   return post(`/companion/review/${reviewId}/reply`, data)
 }
 
-/**
- * 获取游戏列表
- * @returns {Promise}
- */
-export function getGameList() {
-  return get('/games')
-}
+// 注意：获取游戏列表请使用 @/api/game 的 getGameList（对应后端 GET /game/select-options）
+// 此处原有的 getGameList('/games') 与后端不符，已移除，避免误用。
 
 /**
  * 获取游戏详情

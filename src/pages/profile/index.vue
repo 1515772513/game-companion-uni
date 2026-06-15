@@ -102,7 +102,7 @@
       </view> -->
 
       <!-- 在线状态三档开关 -->
-      <view class="menu-item" v-if="userInfo.companionStatus === '1'">
+      <view class="menu-item" v-if="userInfo.companionStatus === 1">
         <view class="menu-left">
           <uni-icons type="wifi-filled" size="22" color="#3b82f6"></uni-icons>
           <text class="menu-label">{{ mainText }}在线状态</text>
@@ -177,12 +177,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserInfo, logout, updateCompanionStatus } from '@/api/user'
+import { getUserInfo, logout } from '@/api/user'
+import { getCompanionProfile, setCompanionOnlineStatus } from '@/api/companion'
 import { getOrderStats } from '@/api/order'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
 import { computed } from 'vue'
-import { checkAuthInfo } from '@/utils/common'
+import { checkAuthInfo, normalizeOnlineStatus, onlineStatusToInt } from '@/utils/common'
 
 const appStore = useAppStore()
 
@@ -214,37 +215,37 @@ onShow(() => {
   if (userStore.token) {
     loadUserInfo()
     loadOrderStats()
-    // 加载当前在线状态
-    loadCompanionStatus()
   }
 })
 
-// 🔥 加载陪玩师状态
-const loadCompanionStatus = async () => {
+// 加载陪玩师在线状态（仅审核通过后调用，来源于 GET /companion/my-info 的 onlineStatus）
+const loadOnlineStatus = async () => {
   try {
-    // 从用户信息中读取状态，或单独接口获取
-    onlineStatus.value = userInfo.value.companionStatus || 'online'
+    const res = await getCompanionProfile()
+    if (res.code === 200 && res.data) {
+      onlineStatus.value = normalizeOnlineStatus(res.data.onlineStatus)
+    }
   } catch (error) {
-    console.error('加载状态失败', error)
+    console.error('加载在线状态失败', error)
   }
 }
 
-// 🔥 切换状态
+// 切换在线状态（PUT /companion/online-status，body: { onlineStatus: 0/1/2 }）
 const changeStatus = async (status) => {
   if (onlineStatus.value === status) return
+  const prev = onlineStatus.value
   onlineStatus.value = status
-  
+
   try {
-    // 调用接口更新状态
-    await updateCompanionStatus({ status })
+    await setCompanionOnlineStatus({ onlineStatus: onlineStatusToInt(status) })
     uni.showToast({
       title: `状态已更新为${status === 'online' ? '在线' : status === 'busy' ? '接单中' : '离线'}`,
       icon: 'success'
     })
   } catch (error) {
     console.error('更新状态失败', error)
-    // 回滚状态
-    onlineStatus.value = status === 'online' ? 'online' : status === 'busy' ? 'busy' : 'offline'
+    // 回滚到切换前的状态
+    onlineStatus.value = prev
     uni.showToast({
       title: '更新失败',
       icon: 'none'
@@ -268,8 +269,10 @@ const loadUserInfo = async () => {
         couponCount: data.couponCount || 0,
         balance: data.balance || 0
       }
-      // 同步状态
-      onlineStatus.value = data.companionStatus || 'online'
+      // 审核通过的陪玩师，加载其真实在线状态
+      if (data.companionStatus === 1) {
+        loadOnlineStatus()
+      }
     }
   } catch (error) {
     console.error('获取用户信息失败', error)
@@ -320,8 +323,8 @@ const goToWallet = () => {
 
 const goToCompanionApply = () => {
   if (userInfo.value.companionStatus === 1) {
-    uni.switchTab({
-      url: '/packages/companion/index'
+    uni.navigateTo({
+      url: '/pages/profile/info-apply'
     })
   } else if (userInfo.value.companionStatus === 0) {
     uni.showToast({

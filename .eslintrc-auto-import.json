@@ -131,6 +131,8 @@
     "watch": true,
     "watchEffect": true,
     "watchPostEffect": true,
-    "watchSyncEffect": true
+    "watchSyncEffect": true,
+    "normalizeOnlineStatus": true,
+    "onlineStatusToInt": true
   }
 }

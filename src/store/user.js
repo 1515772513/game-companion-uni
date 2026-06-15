@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { smsLogin, loginByWechat } from '@/api/user.js'
+import { smsLogin, loginByWechat, phoneLogin, phonePasswordLogin } from '@/api/user.js'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -62,14 +62,14 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // 登录 手机
+    // 登录 手机号一键登录（无验证码）
     async login(loginData) {
       try {
         // 这里调用登录API
         const res = await smsLogin(loginData)
         const data = res.data
 
-        this.setToken(data.token)
+        this.setToken(data.accessToken)
         this.setUserInfo(data.userInfo)
 
         // 持久化用户信息
@@ -78,7 +78,45 @@ export const useUserStore = defineStore('user', {
         return { success: true, data: data }
       } catch (error) {
         console.error('登录失败:', error)
-        return { success: false, message: error.message }
+        return { success: false, message: error.error || error.message }
+      }
+    },
+
+    // 登录 手机号验证码登录（非微信环境）
+    async loginByCode(loginData) {
+      try {
+        const res = await phoneLogin(loginData)
+        const data = res.data
+
+        this.setToken(data.accessToken)
+        this.setUserInfo(data.userInfo)
+
+        // 持久化用户信息
+        uni.setStorageSync('userInfo', data.userInfo)
+
+        return { success: true, data: data }
+      } catch (error) {
+        console.error('登录失败:', error)
+        return { success: false, message: error.error || error.message }
+      }
+    },
+
+    // 登录 手机号密码登录（非微信环境）
+    async loginByPassword(loginData) {
+      try {
+        const res = await phonePasswordLogin(loginData)
+        const data = res.data
+
+        this.setToken(data.accessToken)
+        this.setUserInfo(data.userInfo)
+
+        // 持久化用户信息
+        uni.setStorageSync('userInfo', data.userInfo)
+
+        return { success: true, data: data }
+      } catch (error) {
+        console.error('登录失败:', error)
+        return { success: false, message: error.error || error.message }
       }
     },
 

@@ -24,6 +24,8 @@ export const useAppStore = defineStore('app', {
       isMaintenance: 1,
       // 主体文案维护
       mainText: '游戏',
+      // 手机号登录默认方式开关：'password'-密码登录(默认) | 'code'-验证码登录
+      loginMode: 'password',
     },
     // 用户协议版本
     agreementVersion: '1.0.0',

@@ -92,7 +92,7 @@
           <view class="name-row">
             <text class="name">{{ companion.nickname }}</text>
             <view class="level-badge">{{ companion.level }}</view>
-            <view class="online-status" :class="{ online: companion.online_status === 1 }"></view>
+            <view class="online-status" :class="{ online: normalizeOnlineStatus(companion.onlineStatus) === 'online' }"></view>
           </view>
           <view class="tags">
             <text class="tag" v-for="tag in companion.tags" :key="tag">{{ tag }}</text>
@@ -177,6 +177,7 @@ import { getCompanionList } from '@/api/companion'
 import { getDictList } from '@/api/dict'
 import { getGameList } from '@/api/game'
 import { useAppStore } from '@/store/app'
+import { normalizeOnlineStatus } from '@/utils/common'
 
 const appStore = useAppStore()
 
@@ -221,6 +222,9 @@ const sortOptions = ref([
 const gamePopup = ref(null)
 
 onMounted(async () => {
+  uni.setNavigationBarTitle({
+    title: `${mainText.value}师`
+  })
   // 初始化数据
   await Promise.all([loadGames(), loadServiceTypes()])
   
@@ -312,24 +316,25 @@ const loadCompanions = async () => {
   loading.value = true
 
   try {
+    // 查询参数对应后端 CompanionListFrontRequest（snake_case）
     const params = {
       page: page.value,
       page_size: pageSize.value,
       sort: selectedSort.value.order || 'rating_desc'
     }
 
+    const kw = keyword.value.trim()
+    if (kw) params.keyword = kw
     if (selectedGame.value.id) params.game_id = selectedGame.value.id
     if (selectedLevel.value.id) params.level = selectedLevel.value.id
     if (selectedType.value.id) params.service_type = selectedType.value.id
 
-    // 区分是搜索还是普通加载
-    const requestFunc = getCompanionList
-    const res = await requestFunc(keyword.value.trim() ? { keyword: keyword.value.trim() } : params)
+    const res = await getCompanionList(params)
 
     if (res.code === 200) {
       const items = res.data.items || []
       companions.value = page.value === 1 ? items : [...companions.value, ...items]
-      hasMore.value = res.data.pagination?.has_more || false
+      hasMore.value = res.data.pagination?.hasMore || false
     }
   } catch (error) {
     console.error('加载失败', error)
@@ -424,12 +429,12 @@ const goBack = () => {
 }
 
 // 触底加载更多
-// uni.onReachBottom(() => {
-//   if (hasMore.value && !loading.value) {
-//     page.value++
-//     loadCompanions()
-//   }
-// })
+onReachBottom(() => {
+  if (hasMore.value && !loading.value) {
+    page.value++
+    loadCompanions()
+  }
+})
 </script>
 
 <style lang="scss" scoped>

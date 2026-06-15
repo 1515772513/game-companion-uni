@@ -494,17 +494,71 @@ export function setRouteUrlAfterLogin() {
 }
 
 /**
- * 检查是否授权
+ * 归一化陪玩师在线状态
+ * 后端存储不统一：默认/列表筛选用英文(online/offline)，切换后写中文(在线/离线/忙碌)，
+ * 此处统一归一化为 'online' | 'busy' | 'offline'。
+ * @param {String} status - 原始在线状态值
+ * @returns {'online'|'busy'|'offline'}
+ */
+export function normalizeOnlineStatus(status) {
+  if (status === "online" || status === "在线") return "online";
+  if (status === "busy" || status === "忙碌") return "busy";
+  return "offline";
+}
+
+/**
+ * 将在线状态字符串转换为后端所需的整型（PUT /companion/online-status）
+ * @param {String} status - 'online' | 'busy' | 'offline'
+ * @returns {Number} 0-离线，1-在线，2-忙碌
+ */
+export function onlineStatusToInt(status) {
+  if (status === "online") return 1;
+  if (status === "busy") return 2;
+  return 0;
+}
+
+/**
+ * 检查是否授权（已登录则执行回调，未登录则跳转登录页）
+ * @param {Function} fn - 已登录时执行的回调
+ * @param {String} redirectInfo - 兼容旧参数（暂未使用）
+ * @param {Object} redirectObj - 兼容旧参数（暂未使用）
+ * @param {String} navigateType - 兼容旧参数（暂未使用）
  */
 export function checkAuthInfo(fn, redirectInfo = "", redirectObj = {}, navigateType = "navigate") {
+  // 已登录：直接执行回调
+  if (uni.getStorageSync("token")) {
+    typeof fn === "function" && fn();
+    return;
+  }
+
+  const loginUrl = "/pages/user/login";
+
+  // 未登录：判断当前页面，避免在登录页重复跳转导致卡死
   // eslint-disable-next-line no-undef
   const pages = getCurrentPages();
-  if (uni.getStorageSync("token")) {
-    fn();
+  const current = pages[pages.length - 1];
+  const currentRoute = current && current.route ? current.route : "";
+  if (currentRoute === "pages/user/login") {
     return;
-  } else {
-    uni.navigateTo({
-      url: '/pages/user/login',
-    });
   }
+
+  // 记录登录成功后的回跳地址
+  try {
+    setRouteUrlAfterLogin();
+  } catch (e) {
+    // 获取当前路由失败时忽略，不阻塞跳转
+  }
+
+  // 跳转登录页：navigateTo 失败（如页面栈已满）时降级，确保不会卡住
+  uni.navigateTo({
+    url: loginUrl,
+    fail: () => {
+      uni.redirectTo({
+        url: loginUrl,
+        fail: () => {
+          uni.reLaunch({ url: loginUrl });
+        },
+      });
+    },
+  });
 }

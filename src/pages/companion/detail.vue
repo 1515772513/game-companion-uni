@@ -203,6 +203,9 @@ const games = ref([])
 const selectedGame = ref({})
 
 onMounted(() => {
+  uni.setNavigationBarTitle({
+    title: `${mainText.value}师详情`
+  })
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
   const options = currentPage.options
@@ -304,12 +307,13 @@ const selectService = (service) => {
 
 const toggleFavorite = async () => {
   try {
+    // 后端 AddFavoriteDto/RemoveFavoriteDto 字段为 ItemId(int)，需传数字
     if (companionInfo.value.isFavorite) {
-      await removeFavorite({ ItemId: companionId.value })
+      await removeFavorite({ ItemId: Number(companionId.value) })
       companionInfo.value.isFavorite = false
       uni.showToast({ title: '取消收藏', icon: 'success' })
     } else {
-      await addFavorite({ ItemId: companionId.value })
+      await addFavorite({ ItemId: Number(companionId.value) })
       companionInfo.value.isFavorite = true
       uni.showToast({ title: '收藏成功', icon: 'success' })
     }
@@ -329,7 +333,6 @@ const goToCreateOrder = () => {
     uni.showToast({ title: '请先选择服务', icon: 'none' })
     return
   }
-  console.log(`/pages/order/create?companionId=${companionId.value}&serviceId=${selectedService.value.id}`)
   uni.navigateTo({
     url: `/pages/order/create?companionId=${companionId.value}&serviceId=${selectedService.value.id}`
   })

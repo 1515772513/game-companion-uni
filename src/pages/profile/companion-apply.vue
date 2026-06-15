@@ -82,10 +82,10 @@
         </view>
 
         <view class="form-item">
-          <view class="label">个人简介</view>
-          <textarea 
-            v-model="formData.bio" 
-            class="textarea" 
+          <view class="label">个人简介 <text class="required">*</text></view>
+          <textarea
+            v-model="formData.bio"
+            class="textarea"
             placeholder="介绍一下自己，让更多人了解你"
             maxlength="200"
           ></textarea>
@@ -546,6 +546,7 @@ const submitApply = async () => {
   if (!/^\d{17}[\dXx]$/.test(formData.idCard)) return uni.showToast({ title: '身份证错误', icon: 'none' })
   if (!formData.idCardFront || !formData.idCardBack) return uni.showToast({ title: '请上传身份证', icon: 'none' })
   if (!formData.nickname) return uni.showToast({ title: '请输入昵称', icon: 'none' })
+  if (!formData.bio || !formData.bio.trim()) return uni.showToast({ title: '请填写个人简介', icon: 'none' })
 
   for (let skill of gameSkillList.value) {
     if (!skill.gameId) return uni.showToast({ title: '请选择游戏', icon: 'none' })
@@ -595,6 +596,9 @@ const submitApply = async () => {
 }
 
 onMounted(async () => {
+  uni.setNavigationBarTitle({
+    title: `${mainText.value}师申请`
+  })
   await loadGameList()
   await loadServiceTypes()
 })
@@ -609,7 +613,10 @@ async function loadGameList() {
       ]
       filteredGameOptions.value = [...gameOptions.value]
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('加载游戏列表失败', e)
+    uni.showToast({ title: '游戏列表加载失败', icon: 'none' })
+  }
 }
 </script>
 
